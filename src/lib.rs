@@ -190,6 +190,7 @@ pub fn show_wallpaper_ascii(args: &WFetchArgs, fastfetch: &mut Command) {
     ascii_converter
         .arg("--color")
         .arg("--braille")
+        .args(["--threshold", "50"])
         .arg("--width")
         .arg(args.ascii_size.to_string())
         .arg("-"); // load from stdin

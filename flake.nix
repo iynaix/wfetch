@@ -38,6 +38,7 @@
         pkgs: rec {
           wfetch = pkgs.callPackage ./package.nix { };
           default = wfetch;
+          wfetch-waifu = wfetch.override { waifu = true; };
         }
       );
     };
