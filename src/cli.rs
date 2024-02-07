@@ -2,7 +2,10 @@ use clap::Parser;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug)]
-#[command(name = "wfetch", about = "iynaix's custom fetch")]
+#[command(
+    name = "wfetch",
+    about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way"
+)]
 pub struct WFetchArgs {
     #[arg(long, action, help = "show hollow NixOS logo")]
     pub hollow: bool,
@@ -14,16 +17,18 @@ pub struct WFetchArgs {
     #[arg(
         long,
         num_args = 0..=1,
+        value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "show section of wallpaper",
+        action, help = "show section of wallpaper\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
     pub wallpaper: Option<String>,
 
     #[arg(
         long,
         num_args = 0..=1,
+        value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "show section of wallpaper in ascii",
+        action, help = "show section of wallpaper in ascii\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
     pub wallpaper_ascii: Option<String>,
 
@@ -33,6 +38,7 @@ pub struct WFetchArgs {
     #[arg(
         long,
         action,
+        value_name = "TIMESTAMP",
         default_value = "1675821503",
         help = "start of the challenge as a UNIX timestamp in seconds"
     )]
@@ -41,6 +47,7 @@ pub struct WFetchArgs {
     #[arg(
         long,
         action,
+        value_name = "YEARS",
         default_value = "10",
         help = "duration of challenge in years"
     )]
@@ -49,6 +56,7 @@ pub struct WFetchArgs {
     #[arg(
         long,
         action,
+        value_name = "MONTHS",
         default_value = "0",
         help = "duration of challenge in months"
     )]
@@ -57,7 +65,7 @@ pub struct WFetchArgs {
     #[arg(long, action, help = "type of the challenge, e.g. emacs")]
     pub challenge_type: Option<String>,
 
-    #[arg(long, action, help = "listen for SIGUSR2")]
+    #[arg(long, action, help = "listen for SIGUSR2 to refresh output")]
     pub listen: bool,
 
     #[arg(long, action, help = "do not show colored keys")]
