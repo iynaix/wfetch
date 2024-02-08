@@ -201,25 +201,42 @@ pub fn show_wallpaper_ascii(args: &WFetchArgs, fastfetch: &mut Command) {
 }
 
 pub fn shell_module() -> serde_json::Value {
-    // HACK: fastfetch detects the process as wfetch, detect it via STARSHIP_SHELL
-    if std::env::var("STARSHIP_SHELL").unwrap_or_default() == "fish" {
-        let fish_version = execute::command!("fish --version")
-            .execute_stdout_lines()
-            .first()
-            .expect("could not run fish")
-            .split(' ')
-            .last()
-            .expect("could not parse fish version")
-            .to_string();
+    if let Ok(starship_shell) = std::env::var("STARSHIP_SHELL") {
+        if starship_shell.ends_with("fish") {
+            return json!({
+                "type": "command",
+                "key": "󰈺 SH",
+                "text": "echo fish",
+            });
+        }
+        return json!({
+            "type": "command",
+            "key": " SH",
+            "text": format!("echo {starship_shell}"),
+        });
+    }
 
-        json!({
+    let shell = std::env::var("SHELL").unwrap_or_default();
+
+    if shell.ends_with("fish") {
+        return json!({
             "type": "command",
             "key": "󰈺 SH",
-            "text": format!("echo \"fish {}\"", fish_version),
-        })
-    } else {
-        json!({ "type": "shell", "key": " SH", "format": "{3}" })
+            "text": "echo fish",
+        });
+    } else if shell.ends_with("zsh") {
+        return json!({
+            "type": "command",
+            "key": " SH",
+            "text": "echo zsh",
+        });
     }
+
+    json!({
+        "type": "command",
+        "key": " SH",
+        "text": "echo bash",
+    })
 }
 
 fn os_module() -> serde_json::Value {
