@@ -3,13 +3,13 @@ use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use execute::Execute;
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap,
     env,
     path::PathBuf,
     process::{Command, Stdio},
 };
 
 pub mod cli;
+pub mod logos;
 pub mod wallpaper;
 
 pub fn full_path<P>(p: P) -> PathBuf
@@ -44,6 +44,16 @@ impl CommandUtf8 for std::process::Command {
 }
 
 #[cfg(feature = "wfetch-waifu")]
+pub const fn arg_waifu1(args: &WFetchArgs) -> bool {
+    args.waifu
+}
+
+#[cfg(not(feature = "wfetch-waifu"))]
+pub const fn arg_waifu1(_args: &WFetchArgs) -> bool {
+    false
+}
+
+#[cfg(feature = "wfetch-waifu")]
 pub const fn arg_waifu2(args: &WFetchArgs) -> bool {
     args.waifu2
 }
@@ -72,7 +82,7 @@ pub fn asset_path(filename: &str) -> String {
 }
 
 fn create_output_file(filename: String) -> String {
-    let output_dir = full_path("~/.cache/wfetch");
+    let output_dir = full_path("/tmp/wfetch");
     std::fs::create_dir_all(&output_dir).expect("failed to create output dir");
 
     output_dir
@@ -80,76 +90,6 @@ fn create_output_file(filename: String) -> String {
         .to_str()
         .expect("could not convert output dir to str")
         .to_string()
-}
-
-fn create_nixos_logo(args: &WFetchArgs) -> String {
-    let image_size = args
-        .image_size
-        .unwrap_or(if args.challenge { 385 } else { 305 });
-
-    let output = create_output_file("nixos2.png".to_string());
-
-    execute::command_args!(
-        "convert",
-        // replace color 1
-        &asset_path("nixos2.png"),
-        "-resize",
-        format!("{image_size}x{image_size}"),
-        output,
-    )
-    .execute()
-    .expect("failed to create nixos logo");
-
-    output
-}
-
-#[derive(serde::Deserialize)]
-struct NixInfo {
-    colors: HashMap<String, String>,
-}
-
-fn create_nixos_logo_with_color(args: &WFetchArgs) -> String {
-    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))
-        .unwrap_or_else(|_| panic!("failed to load nix.json"));
-
-    let hexless = serde_json::from_str::<NixInfo>(&contents)
-        .unwrap_or_else(|_| panic!("failed to parse nix.json"))
-        .colors;
-
-    // let hexless = NixInfo::after().colors;
-    let c1 = hexless.get("color4").expect("invalid color");
-    let c2 = hexless.get("color6").expect("invalid color");
-
-    let output = create_output_file(format!("{c1}-{c2}.png"));
-    let image_size = args
-        .image_size
-        .unwrap_or(if args.challenge { 420 } else { 340 });
-
-    execute::command_args!(
-        "convert",
-        // replace color 1
-        &asset_path("nixos.png"),
-        "-fuzz",
-        "10%",
-        "-fill",
-        c1,
-        "-opaque",
-        "#5278c3",
-        // replace color 2
-        "-fuzz",
-        "10%",
-        "-fill",
-        c2,
-        "-opaque",
-        "#7fbae4",
-        "-resize",
-        format!("{image_size}x{image_size}"),
-        output,
-    )
-    .execute()
-    .expect("failed to create nixos logo");
-
-    output
 }
 
 fn imagemagick_wallpaper(args: &WFetchArgs, wallpaper_arg: &Option<String>) -> Command {
@@ -342,18 +282,18 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
             "type": "auto",
             "source": "-"
         });
-    } else if args.waifu {
+    } else if arg_waifu1(args) {
         logo = json!({
             // ghostty supports kitty image protocol
             "type": "kitty-direct",
-            "source": create_nixos_logo(args),
+            "source": logos::create_nixos_logo1(args),
             "preserveAspectRatio": true,
         });
     } else if arg_waifu2(args) {
         logo = json!({
             // ghostty supports kitty image protocol
             "type": "kitty-direct",
-            "source": create_nixos_logo_with_color(args),
+            "source": logos::create_nixos_logo2(args),
             "preserveAspectRatio": true,
         });
     }

@@ -11,11 +11,11 @@ pub struct WFetchArgs {
     pub hollow: bool,
 
     #[cfg(feature = "wfetch-waifu")]
-    #[arg(long, action, help = "show waifu NixOS logo")]
+    #[arg(long, action, help = "show waifu NixOS logo with dynamic colors")]
     pub waifu: bool,
 
     #[cfg(feature = "wfetch-waifu")]
-    #[arg(long, action, help = "show waifu NixOS logo with dynamic colors")]
+    #[arg(long, action, help = "show waifu NixOS logo 2 with dynamic colors")]
     pub waifu2: bool,
 
     #[arg(
