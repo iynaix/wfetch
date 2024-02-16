@@ -295,7 +295,7 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
     let color = json!({ "type": "colors", "symbol": "circle", });
 
     // handle logo
-    let mut logo = json!({ "source": "nixos" });
+    let mut logo = json!({ "source": null });
 
     if args.hollow {
         let hollow = asset_path("nixos_hollow.txt");
