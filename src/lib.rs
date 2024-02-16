@@ -44,12 +44,12 @@ impl CommandUtf8 for std::process::Command {
 }
 
 #[cfg(feature = "wfetch-waifu")]
-pub const fn arg_waifu(args: &WFetchArgs) -> bool {
-    args.waifu
+pub const fn arg_waifu2(args: &WFetchArgs) -> bool {
+    args.waifu2
 }
 
 #[cfg(not(feature = "wfetch-waifu"))]
-pub const fn arg_waifu(_args: &WFetchArgs) -> bool {
+pub const fn arg_waifu2(_args: &WFetchArgs) -> bool {
     false
 }
 
@@ -83,14 +83,38 @@ fn create_output_file(filename: String) -> String {
 }
 
 fn create_nixos_logo(args: &WFetchArgs) -> String {
-    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))
-        .unwrap_or_else(|_| panic!("failed to load nix.jspn"));
+    let image_size = args
+        .image_size
+        .unwrap_or(if args.challenge { 385 } else { 305 });
 
-    let hexless = serde_json::from_str::<HashMap<String, HashMap<String, String>>>(&contents)
-        .unwrap_or_else(|_| panic!("failed to parse nix.json"));
-    let hexless = hexless
-        .get("colors")
-        .unwrap_or_else(|| panic!("failed to get colors"));
+    let output = create_output_file("nixos2.png".to_string());
+
+    execute::command_args!(
+        "convert",
+        // replace color 1
+        &asset_path("nixos2.png"),
+        "-resize",
+        format!("{image_size}x{image_size}"),
+        output,
+    )
+    .execute()
+    .expect("failed to create nixos logo");
+
+    output
+}
+
+#[derive(serde::Deserialize)]
+struct NixInfo {
+    colors: HashMap<String, String>,
+}
+
+fn create_nixos_logo_with_color(args: &WFetchArgs) -> String {
+    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))
+        .unwrap_or_else(|_| panic!("failed to load nix.json"));
+
+    let hexless = serde_json::from_str::<NixInfo>(&contents)
+        .unwrap_or_else(|_| panic!("failed to parse nix.json"))
+        .colors;
 
     // let hexless = NixInfo::after().colors;
     let c1 = hexless.get("color4").expect("invalid color");
@@ -318,11 +342,18 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
             "type": "auto",
             "source": "-"
         });
-    } else if arg_waifu(args) {
+    } else if args.waifu {
         logo = json!({
             // ghostty supports kitty image protocol
             "type": "kitty-direct",
             "source": create_nixos_logo(args),
+            "preserveAspectRatio": true,
+        });
+    } else if arg_waifu2(args) {
+        logo = json!({
+            // ghostty supports kitty image protocol
+            "type": "kitty-direct",
+            "source": create_nixos_logo_with_color(args),
             "preserveAspectRatio": true,
         });
     }

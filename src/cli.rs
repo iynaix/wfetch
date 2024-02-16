@@ -14,6 +14,10 @@ pub struct WFetchArgs {
     #[arg(long, action, help = "show waifu NixOS logo")]
     pub waifu: bool,
 
+    #[cfg(feature = "wfetch-waifu")]
+    #[arg(long, action, help = "show waifu NixOS logo with dynamic colors")]
+    pub waifu2: bool,
+
     #[arg(
         long,
         num_args = 0..=1,
