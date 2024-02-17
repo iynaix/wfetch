@@ -6,7 +6,6 @@
   ascii-image-converter,
   fastfetch,
   imagemagick,
-  waifu ? false,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -15,12 +14,6 @@ rustPlatform.buildRustPackage {
   src = ./.;
 
   cargoLock.lockFile = ./Cargo.lock;
-
-  cargoBuildFlags = lib.optionals waifu [
-    "--no-default-features"
-    "--features"
-    "wfetch-waifu"
-  ];
 
   # create files for shell autocomplete
   nativeBuildInputs = [

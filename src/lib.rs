@@ -11,6 +11,7 @@ use std::{
 pub mod cli;
 pub mod logos;
 pub mod wallpaper;
+pub mod xterm;
 
 pub fn full_path<P>(p: P) -> PathBuf
 where
@@ -41,26 +42,6 @@ impl CommandUtf8 for std::process::Command {
             },
         )
     }
-}
-
-#[cfg(feature = "wfetch-waifu")]
-pub const fn arg_waifu1(args: &WFetchArgs) -> bool {
-    args.waifu
-}
-
-#[cfg(not(feature = "wfetch-waifu"))]
-pub const fn arg_waifu1(_args: &WFetchArgs) -> bool {
-    false
-}
-
-#[cfg(feature = "wfetch-waifu")]
-pub const fn arg_waifu2(args: &WFetchArgs) -> bool {
-    args.waifu2
-}
-
-#[cfg(not(feature = "wfetch-waifu"))]
-pub const fn arg_waifu2(_args: &WFetchArgs) -> bool {
-    false
 }
 
 pub fn asset_path(filename: &str) -> String {
@@ -282,14 +263,14 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
             "type": "auto",
             "source": "-"
         });
-    } else if arg_waifu1(args) {
+    } else if args.waifu {
         logo = json!({
             // ghostty supports kitty image protocol
             "type": "kitty-direct",
             "source": logos::create_nixos_logo1(args),
             "preserveAspectRatio": true,
         });
-    } else if arg_waifu2(args) {
+    } else if args.waifu2 {
         logo = json!({
             // ghostty supports kitty image protocol
             "type": "kitty-direct",

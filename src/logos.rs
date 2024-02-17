@@ -8,7 +8,7 @@ struct NixInfo {
     colors: HashMap<String, String>,
 }
 
-fn get_logo_colors() -> (String, String) {
+fn logo_colors_from_json() -> Option<(String, String)> {
     let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))
         .unwrap_or_else(|_| panic!("failed to load nix.json"));
 
@@ -16,10 +16,32 @@ fn get_logo_colors() -> (String, String) {
         .unwrap_or_else(|_| panic!("failed to parse nix.json"))
         .colors;
 
-    let c1 = hexless.get("color4").expect("invalid color");
-    let c2 = hexless.get("color6").expect("invalid color");
+    let c1 = hexless.get("color4");
+    let c2 = hexless.get("color6");
+    match (c1, c2) {
+        (Some(c1), Some(c2)) => Some((c1.to_owned(), c2.to_owned())),
+        _ => None,
+    }
+}
 
-    (c1.to_owned(), c2.to_owned())
+fn logo_colors_from_xterm() -> Option<(String, String)> {
+    let c1 = crate::xterm::query_term_color(4);
+    let c2 = crate::xterm::query_term_color(6);
+
+    match (c1, c2) {
+        (Some(c1), Some(c2)) => Some((c1, c2)),
+        _ => None,
+    }
+}
+
+fn get_logo_colors() -> (String, String) {
+    if let Some(colors) = logo_colors_from_json() {
+        colors
+    } else if let Some(colors) = logo_colors_from_xterm() {
+        colors
+    } else {
+        panic!("failed to get logo colors")
+    }
 }
 
 /// gets the image
