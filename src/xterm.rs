@@ -1,22 +1,24 @@
 // implementation adapted from:
 // https://github.com/Canop/terminal-light/blob/main/src/xterm.rs
 
-fn query_xterm(query: &str, timeout_ms: u16) -> Option<String> {
+use crate::{colors::Color, WFetchResult};
+
+fn query_xterm(query: &str, timeout_ms: u16) -> WFetchResult<String> {
     use crossterm::terminal::{disable_raw_mode, enable_raw_mode, is_raw_mode_enabled};
-    let switch_to_raw = !is_raw_mode_enabled().expect("failed to check raw mode");
+    let switch_to_raw = !is_raw_mode_enabled()?;
     if switch_to_raw {
-        enable_raw_mode().expect("failed to enable raw mode");
+        enable_raw_mode()?;
     }
-    let res = xterm_query::query(query, timeout_ms).ok();
+    let res = xterm_query::query(query, timeout_ms)?;
     if switch_to_raw {
-        disable_raw_mode().expect("failed to disable raw mode");
+        disable_raw_mode()?;
     }
-    res
+    Ok(res)
 }
 
 /// Query the bg color, assuming the terminal is in raw mode,
 /// using the "dynamic colors" OSC escape sequence.
-pub fn query_term_color(color: u8) -> Option<String> {
+pub fn query_term_color(color: u8) -> WFetchResult<Color> {
     // we use the "dynamic colors" OSC escape sequence. It's sent with a ? for
     // a query and normally answered by the terminal with a color.
     // References:
@@ -38,8 +40,8 @@ pub fn query_term_color(color: u8) -> Option<String> {
             let g = u8::from_str_radix(&raw_color[5..7], 16).expect("failed to parse green");
             let b = u8::from_str_radix(&raw_color[10..12], 16).expect("failed to parse blue");
 
-            Some(format!("#{r:02x}{g:02x}{b:02x}"))
+            Ok(Color::new(r, g, b))
         }
-        _ => None,
+        _ => Err("could not get xterm color".into()),
     }
 }

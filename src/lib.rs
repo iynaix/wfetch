@@ -9,9 +9,12 @@ use std::{
 };
 
 pub mod cli;
+pub mod colors;
 pub mod logos;
 pub mod wallpaper;
 pub mod xterm;
+
+pub type WFetchResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 pub fn full_path<P>(p: P) -> PathBuf
 where
@@ -169,7 +172,9 @@ pub fn shell_module() -> serde_json::Value {
             "key": "󰈺 SH",
             "text": "echo fish",
         });
-    } else if shell.ends_with("zsh") {
+    }
+
+    if shell.ends_with("zsh") {
         return json!({
             "type": "command",
             "key": " SH",
@@ -184,18 +189,19 @@ pub fn shell_module() -> serde_json::Value {
     })
 }
 
-fn os_module() -> serde_json::Value {
-    let os = if execute::command!("uname -a")
+fn is_nixos() -> bool {
+    execute::command!("uname -a")
         .execute_stdout_lines()
         .join(" ")
         .contains("NixOS")
-    {
-        ""
-    } else {
-        ""
-    };
+}
 
-    json!({ "type": "os", "key": format!("{os} OS"), "format": "{3}" })
+fn os_module(nixos: bool) -> serde_json::Value {
+    json!({
+        "type": "os",
+        "key": format!("{} OS", if nixos { "" } else { "" }),
+        "format": "{3}"
+    })
 }
 
 fn wm_module() -> serde_json::Value {
@@ -224,9 +230,90 @@ fn wm_module() -> serde_json::Value {
     }
 }
 
+fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
+    // from wallpaper, no need to compute contrasting colors
+    if args.wallpaper_ascii.is_some() {
+        return json!({
+            "type": "auto",
+            "source": "-"
+        });
+    }
+    if args.wallpaper.is_some() {
+        return json!({
+            // ghostty supports kitty image protocol
+            "type": "kitty-direct",
+            "source": create_wallpaper_image(args),
+            "preserveAspectRatio": true,
+        });
+    }
+
+    let logo_colors = logos::get_logo_colors();
+    if let Ok((color1, color2)) = &logo_colors {
+        if args.waifu {
+            return json!({
+                // ghostty supports kitty image protocol
+                "type": "kitty-direct",
+                "source": logos::create_nixos_logo1(args, color1, color2),
+                "preserveAspectRatio": true,
+            });
+        }
+
+        if args.waifu2 {
+            return json!({
+                // ghostty supports kitty image protocol
+                "type": "kitty-direct",
+                "source": logos::create_nixos_logo2(args, color1, color2),
+                "preserveAspectRatio": true,
+            });
+        }
+    } else {
+        panic!("failed to get logo colors")
+    }
+
+    // use fastfetch defaults if unable to get term colors
+    /*
+    let source_colors = if let Ok((color1, color2)) = &logo_colors {
+        json!({
+            "1": &color1.to_string(),
+            "2": &color2.to_string(),
+        })
+    } else {
+        // default colors from fastfetch
+        json!({
+            "1": "blue",
+            "2": "cyan",
+        })
+    };
+    */
+
+    let source_colors = json!({
+        "1": "blue",
+        "2": "cyan",
+    });
+
+    if args.hollow {
+        let hollow = asset_path("nixos_hollow.txt");
+        return json!({
+            "source": hollow,
+            "color": source_colors,
+        });
+    }
+
+    if nixos {
+        return json!({
+            "source": "nixos",
+            "color": source_colors,
+        });
+    }
+
+    // use fastfetch default
+    json!({ "source": null })
+}
+
 #[allow(clippy::similar_names)] // gpu and cpu trips this
 pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
-    let os = os_module();
+    let nixos = is_nixos();
+    let os = os_module(nixos);
     let kernel = json!({ "type": "kernel", "key": " VER", });
     let uptime = json!({ "type": "uptime", "key": "󰅐 UP", });
     let packages = json!({ "type": "packages", "key": "󰏖 PKG", });
@@ -238,46 +325,6 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
     let memory =
         json!({ "type": "memory", "key": "󰆼 RAM", "format": "{/1}{-}{/}{/2}{-}{/}{} / {}" });
     let color = json!({ "type": "colors", "symbol": "circle", });
-
-    // handle logo
-    let mut logo = json!({ "source": null });
-
-    if args.hollow {
-        let hollow = asset_path("nixos_hollow.txt");
-        logo = json!({
-            "source": hollow,
-            "color": {
-                "1": "blue",
-                "2": "cyan",
-            }
-        });
-    } else if args.wallpaper.is_some() {
-        logo = json!({
-            // ghostty supports kitty image protocol
-            "type": "kitty-direct",
-            "source": create_wallpaper_image(args),
-            "preserveAspectRatio": true,
-        });
-    } else if args.wallpaper_ascii.is_some() {
-        logo = json!({
-            "type": "auto",
-            "source": "-"
-        });
-    } else if args.waifu {
-        logo = json!({
-            // ghostty supports kitty image protocol
-            "type": "kitty-direct",
-            "source": logos::create_nixos_logo1(args),
-            "preserveAspectRatio": true,
-        });
-    } else if args.waifu2 {
-        logo = json!({
-            // ghostty supports kitty image protocol
-            "type": "kitty-direct",
-            "source": logos::create_nixos_logo2(args),
-            "preserveAspectRatio": true,
-        });
-    }
 
     let mut modules = vec![
         os,
@@ -320,7 +367,7 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
             "keyWidth": 1 + 1 + 3 + 3,
             "binaryPrefix": "si",
         },
-        "logo": logo,
+        "logo": logo_module(args, nixos),
         "modules": modules,
     });
 

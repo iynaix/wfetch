@@ -1,90 +1,80 @@
-use execute::Execute;
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use crate::{asset_path, cli::WFetchArgs, create_output_file, full_path};
+use execute::Execute;
+
+use crate::{
+    asset_path,
+    cli::WFetchArgs,
+    colors::{most_contrasting_pair, Color},
+    create_output_file, full_path, WFetchResult,
+};
 
 #[derive(serde::Deserialize)]
 struct NixInfo {
     colors: HashMap<String, String>,
 }
 
-fn logo_colors_from_json() -> Option<(String, String)> {
-    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))
-        .unwrap_or_else(|_| panic!("failed to load nix.json"));
+fn logo_colors_from_json() -> WFetchResult<(Color, Color)> {
+    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))?;
 
-    let hexless = serde_json::from_str::<NixInfo>(&contents)
-        .unwrap_or_else(|_| panic!("failed to parse nix.json"))
-        .colors;
+    let colors = serde_json::from_str::<NixInfo>(&contents)?.colors;
 
-    let c1 = hexless.get("color4");
-    let c2 = hexless.get("color6");
-    match (c1, c2) {
-        (Some(c1), Some(c2)) => Some((c1.to_owned(), c2.to_owned())),
-        _ => None,
-    }
+    // ignore background color (color0)
+    (1..16)
+        .map(|i| {
+            let color_str = colors
+                .get(&format!("color{i}"))
+                .ok_or("failed to get color")?;
+            let color = Color::from_str(color_str)?;
+            Ok(color)
+        })
+        .collect::<WFetchResult<Vec<_>>>()
+        .map(|colors| most_contrasting_pair(&colors))
 }
 
-fn logo_colors_from_xterm() -> Option<(String, String)> {
-    let c1 = crate::xterm::query_term_color(4);
-    let c2 = crate::xterm::query_term_color(6);
-
-    match (c1, c2) {
-        (Some(c1), Some(c2)) => Some((c1, c2)),
-        _ => None,
-    }
+fn logo_colors_from_xterm() -> WFetchResult<(Color, Color)> {
+    // ignore background color (color0)
+    (1..16)
+        .map(crate::xterm::query_term_color)
+        .collect::<WFetchResult<Vec<_>>>()
+        .map(|colors| most_contrasting_pair(&colors))
 }
 
-fn get_logo_colors() -> (String, String) {
-    if let Some(colors) = logo_colors_from_json() {
-        colors
-    } else if let Some(colors) = logo_colors_from_xterm() {
-        colors
-    } else {
-        panic!("failed to get logo colors")
-    }
+pub fn get_logo_colors() -> WFetchResult<(Color, Color)> {
+    logo_colors_from_json().or_else(|_| logo_colors_from_xterm())
 }
 
 /// gets the image
-fn get_image_size(args: &WFetchArgs, smaller_size: i32) -> i32 {
-    args.image_size.unwrap_or(if args.challenge {
+fn image_resize_args(args: &WFetchArgs, smaller_size: i32) -> Vec<String> {
+    let size = args.image_size.unwrap_or(if args.challenge {
         smaller_size + 80
     } else {
         smaller_size
-    })
+    });
+
+    vec!["-resize".to_string(), format!("{size}x{size}")]
 }
 
-fn fill_color_args(fill: &str, opaque: &str) -> Vec<String> {
-    ["-fuzz", "10%", "-fill", &fill, "-opaque", &opaque]
-        .iter()
-        .map(std::string::ToString::to_string)
-        .collect()
-}
-
-pub fn create_nixos_logo1(args: &WFetchArgs) -> String {
-    let (c1, c2) = get_logo_colors();
-
-    let output = create_output_file(format!("nixos1-{c1}-{c2}.png"));
-    let image_size = get_image_size(args, 340);
+pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> String {
+    let output = create_output_file(format!("nixos1-{color1}-{color2}.png"));
 
     execute::command_args!(
         "convert",
         // replace color 1
         &asset_path("nixos1.png"),
     )
-    .args(fill_color_args(&c1, "#5278c3"))
-    .args(fill_color_args(&c2, "#7fbae4"))
-    .args(["-resize", &format!("{image_size}x{image_size}"), &output])
+    .args(&color1.imagemagick_replace_args("#5278c3"))
+    .args(&color2.imagemagick_replace_args("#7fbae4"))
+    .args(image_resize_args(args, 340))
+    .arg(&output)
     .execute()
     .expect("failed to create nixos logo");
 
     output
 }
 
-pub fn create_nixos_logo2(args: &WFetchArgs) -> String {
-    let (c1, c2) = get_logo_colors();
-
-    let output = create_output_file(format!("nixos2-{c1}-{c2}.png"));
-    let image_size = get_image_size(args, 305);
+pub fn create_nixos_logo2(args: &WFetchArgs, color1: &Color, color2: &Color) -> String {
+    let output = create_output_file(format!("nixos2-{color1}-{color2}.png"));
 
     execute::command_args!("convert", &asset_path("nixos2.png"),)
         // color 1 using mask1
@@ -94,7 +84,7 @@ pub fn create_nixos_logo2(args: &WFetchArgs) -> String {
             "Multiply",
             "-composite",
         ])
-        .args(fill_color_args(&c1, "black"))
+        .args(&color1.imagemagick_replace_args("black"))
         // color 2 using mask2
         .args([
             &asset_path("nixos2-mask2.jpg"),
@@ -102,7 +92,7 @@ pub fn create_nixos_logo2(args: &WFetchArgs) -> String {
             "Multiply",
             "-composite",
         ])
-        .args(fill_color_args(&c2, "black"))
+        .args(&color2.imagemagick_replace_args("black"))
         // set transparency using original image
         .args([
             &asset_path("nixos2.png"),
@@ -111,7 +101,8 @@ pub fn create_nixos_logo2(args: &WFetchArgs) -> String {
             "-composite",
         ])
         // finally resize
-        .args(["-resize", &format!("{image_size}x{image_size}"), &output])
+        .args(image_resize_args(args, 305))
+        .arg(&output)
         .execute()
         .expect("failed to create nixos logo");
 
