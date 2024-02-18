@@ -247,63 +247,58 @@ fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
         });
     }
 
-    let logo_colors = logos::get_logo_colors();
-    if let Ok((color1, color2)) = &logo_colors {
-        if args.waifu {
-            return json!({
-                // ghostty supports kitty image protocol
-                "type": "kitty-direct",
-                "source": logos::create_nixos_logo1(args, color1, color2),
-                "preserveAspectRatio": true,
-            });
+    match logos::get_logo_colors() {
+        Err(_) => {
+            assert!(!(args.waifu || args.waifu2), "failed to get logo colors");
+
+            if args.hollow {
+                let hollow = asset_path("nixos_hollow.txt");
+                return json!({
+                    "source": hollow,
+                    "color": json!({ "1": "blue", "2": "cyan" }),
+                });
+            }
         }
 
-        if args.waifu2 {
-            return json!({
-                // ghostty supports kitty image protocol
-                "type": "kitty-direct",
-                "source": logos::create_nixos_logo2(args, color1, color2),
-                "preserveAspectRatio": true,
+        Ok(term_colors) => {
+            let (color1, color2) = colors::most_contrasting_pair(&term_colors);
+
+            if args.waifu {
+                return json!({
+                    "type": "kitty-direct",
+                    "source": logos::create_nixos_logo1(args, &color1, &color2),
+                    "preserveAspectRatio": true,
+                });
+            }
+            if args.waifu2 {
+                return json!({
+                    "type": "kitty-direct",
+                    "source": logos::create_nixos_logo2(args, &color1, &color2),
+                    "preserveAspectRatio": true,
+                });
+            }
+
+            // get the named colors from the terminal
+            let source_colors = json!({
+                "1": &color1.fastfetch_color_name(&term_colors, "blue".to_string()),
+                "2": &color2.fastfetch_color_name(&term_colors, "cyan".to_string()),
             });
+
+            if args.hollow {
+                let hollow = asset_path("nixos_hollow.txt");
+                return json!({
+                    "source": hollow,
+                    "color": source_colors,
+                });
+            }
+
+            if nixos {
+                return json!({
+                    "source": "nixos",
+                    "color": source_colors,
+                });
+            }
         }
-    } else {
-        panic!("failed to get logo colors")
-    }
-
-    // use fastfetch defaults if unable to get term colors
-    /*
-    let source_colors = if let Ok((color1, color2)) = &logo_colors {
-        json!({
-            "1": &color1.to_string(),
-            "2": &color2.to_string(),
-        })
-    } else {
-        // default colors from fastfetch
-        json!({
-            "1": "blue",
-            "2": "cyan",
-        })
-    };
-    */
-
-    let source_colors = json!({
-        "1": "blue",
-        "2": "cyan",
-    });
-
-    if args.hollow {
-        let hollow = asset_path("nixos_hollow.txt");
-        return json!({
-            "source": hollow,
-            "color": source_colors,
-        });
-    }
-
-    if nixos {
-        return json!({
-            "source": "nixos",
-            "color": source_colors,
-        });
     }
 
     // use fastfetch default

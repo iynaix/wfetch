@@ -3,10 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use execute::Execute;
 
 use crate::{
-    asset_path,
-    cli::WFetchArgs,
-    colors::{most_contrasting_pair, Color},
-    create_output_file, full_path, WFetchResult,
+    asset_path, cli::WFetchArgs, colors::Color, create_output_file, full_path, WFetchResult,
 };
 
 #[derive(serde::Deserialize)]
@@ -14,7 +11,7 @@ struct NixInfo {
     colors: HashMap<String, String>,
 }
 
-fn logo_colors_from_json() -> WFetchResult<(Color, Color)> {
+fn logo_colors_from_json() -> WFetchResult<Vec<Color>> {
     let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))?;
 
     let colors = serde_json::from_str::<NixInfo>(&contents)?.colors;
@@ -28,19 +25,15 @@ fn logo_colors_from_json() -> WFetchResult<(Color, Color)> {
             let color = Color::from_str(color_str)?;
             Ok(color)
         })
-        .collect::<WFetchResult<Vec<_>>>()
-        .map(|colors| most_contrasting_pair(&colors))
+        .collect()
 }
 
-fn logo_colors_from_xterm() -> WFetchResult<(Color, Color)> {
+fn logo_colors_from_xterm() -> WFetchResult<Vec<Color>> {
     // ignore background color (color0)
-    (1..16)
-        .map(crate::xterm::query_term_color)
-        .collect::<WFetchResult<Vec<_>>>()
-        .map(|colors| most_contrasting_pair(&colors))
+    (1..16).map(crate::xterm::query_term_color).collect()
 }
 
-pub fn get_logo_colors() -> WFetchResult<(Color, Color)> {
+pub fn get_logo_colors() -> WFetchResult<Vec<Color>> {
     logo_colors_from_json().or_else(|_| logo_colors_from_xterm())
 }
 

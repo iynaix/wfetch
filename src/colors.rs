@@ -1,3 +1,22 @@
+const TERMINAL_COLORS: [&str; 16] = [
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
+    "bright_black",
+    "bright_red",
+    "bright_green",
+    "bright_yellow",
+    "bright_blue",
+    "bright_magenta",
+    "bright_cyan",
+    "bright_white",
+];
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Color(u8, u8, u8);
 
@@ -45,8 +64,20 @@ impl Color {
         .map(std::string::ToString::to_string)
         .collect()
     }
+
+    /// gets color name in format suitable for fastfetch
+    pub fn fastfetch_color_name(&self, term_colors: &[Self], default: String) -> String {
+        term_colors.iter().position(|c| c == self).map_or_else(
+            || default,
+            |pos| {
+                // offset by 1 as background color is ignored
+                TERMINAL_COLORS[pos + 1].to_string()
+            },
+        )
+    }
 }
 
+/// find the most contrasting pair of colors in a list
 pub fn most_contrasting_pair(colors: &[Color]) -> (Color, Color) {
     let mut max_distance = 0.0;
     let mut most_contrasting_pair = (Color::default(), Color::default());
