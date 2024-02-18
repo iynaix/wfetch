@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use execute::Execute;
 
 use crate::{
-    asset_path, cli::WFetchArgs, colors::Color, create_output_file, full_path, WFetchResult,
+    asset_path, cli::WFetchArgs, colors::Color, create_output_image, full_path, WFetchResult,
 };
 
 #[derive(serde::Deserialize)]
@@ -49,7 +49,7 @@ fn image_resize_args(args: &WFetchArgs, smaller_size: i32) -> Vec<String> {
 }
 
 pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> String {
-    let output = create_output_file(format!("nixos1-{color1}-{color2}.png"));
+    let output = create_output_image();
 
     execute::command_args!(
         "convert",
@@ -67,7 +67,7 @@ pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
 }
 
 pub fn create_nixos_logo2(args: &WFetchArgs, color1: &Color, color2: &Color) -> String {
-    let output = create_output_file(format!("nixos2-{color1}-{color2}.png"));
+    let output = create_output_image();
 
     execute::command_args!("convert", &asset_path("nixos2.png"),)
         // color 1 using mask1
