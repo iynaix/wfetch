@@ -66,12 +66,12 @@ pub fn asset_path(filename: &str) -> String {
         .to_string()
 }
 
-fn create_output_image() -> String {
+pub fn create_output_file(filename: &str) -> String {
     let output_dir = full_path("/tmp/wfetch");
     std::fs::create_dir_all(&output_dir).expect("failed to create output dir");
 
     output_dir
-        .join("wfetch.png")
+        .join(filename)
         .to_str()
         .expect("could not convert output dir to str")
         .to_string()
@@ -120,7 +120,7 @@ fn imagemagick_wallpaper(args: &WFetchArgs, wallpaper_arg: &Option<String>) -> C
 
 /// creates the wallpaper image that fastfetch will display
 fn create_wallpaper_image(args: &WFetchArgs) -> String {
-    let output = create_output_image();
+    let output = create_output_file("wfetch.png");
 
     imagemagick_wallpaper(args, &args.wallpaper)
         .arg(&output)

@@ -9,11 +9,11 @@ use std::{
     thread,
     time::Duration,
 };
-use wfetch::{cli::WFetchArgs, create_fastfetch_config, show_wallpaper_ascii};
+use wfetch::{cli::WFetchArgs, create_fastfetch_config, create_output_file, show_wallpaper_ascii};
 
 fn wfetch(args: &WFetchArgs) {
-    let config_jsonc = "/tmp/wfetch.jsonc";
-    create_fastfetch_config(args, config_jsonc);
+    let config_jsonc = create_output_file("wfetch.jsonc");
+    create_fastfetch_config(args, &config_jsonc);
 
     let mut fastfetch =
         execute::command_args!("fastfetch", "--hide-cursor", "--config", config_jsonc);
