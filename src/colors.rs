@@ -1,23 +1,23 @@
-const TERMINAL_COLORS: [&str; 16] = [
+pub const TERMINAL_COLORS: [&str; 16] = [
     "black",
-    "red",
-    "green",
-    "yellow",
     "blue",
-    "magenta",
+    "green",
     "cyan",
+    "red",
+    "magenta",
+    "yellow",
     "white",
     "bright_black",
-    "bright_red",
-    "bright_green",
-    "bright_yellow",
     "bright_blue",
-    "bright_magenta",
+    "bright_green",
     "bright_cyan",
+    "bright_red",
+    "bright_magenta",
+    "bright_yellow",
     "bright_white",
 ];
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct Color(u8, u8, u8);
 
 impl std::fmt::Display for Color {
@@ -63,17 +63,6 @@ impl Color {
         .iter()
         .map(std::string::ToString::to_string)
         .collect()
-    }
-
-    /// gets color name in format suitable for fastfetch
-    pub fn fastfetch_color_name(&self, term_colors: &[Self], default: String) -> String {
-        term_colors.iter().position(|c| c == self).map_or_else(
-            || default,
-            |pos| {
-                // offset by 1 as background color is ignored
-                TERMINAL_COLORS[pos + 1].to_string()
-            },
-        )
     }
 }
 

@@ -1,8 +1,9 @@
-use crate::{cli::WFetchArgs, wallpaper::WallInfo};
+use crate::{cli::WFetchArgs, colors::TERMINAL_COLORS, wallpaper::WallInfo};
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use execute::Execute;
 use serde_json::{json, Value};
 use std::{
+    collections::HashMap,
     env,
     path::PathBuf,
     process::{Command, Stdio},
@@ -261,7 +262,8 @@ fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
         }
 
         Ok(term_colors) => {
-            let (color1, color2) = colors::most_contrasting_pair(&term_colors);
+            // remove background color to get contrast
+            let (color1, color2) = colors::most_contrasting_pair(&term_colors[1..]);
 
             if args.waifu {
                 return json!({
@@ -278,10 +280,11 @@ fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
                 });
             }
 
-            // get the named colors from the terminal
+            // get named colors to pass to fastfetch
+            let named_colors: HashMap<_, _> = term_colors.iter().zip(TERMINAL_COLORS).collect();
             let source_colors = json!({
-                "1": &color1.fastfetch_color_name(&term_colors, "blue".to_string()),
-                "2": &color2.fastfetch_color_name(&term_colors, "cyan".to_string()),
+                "1": (*named_colors.get(&color1).unwrap_or(&"blue")).to_string(),
+                "2": (*named_colors.get(&color2).unwrap_or(&"cyan")).to_string(),
             });
 
             if args.hollow {

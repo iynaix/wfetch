@@ -16,8 +16,7 @@ fn logo_colors_from_json() -> WFetchResult<Vec<Color>> {
 
     let colors = serde_json::from_str::<NixInfo>(&contents)?.colors;
 
-    // ignore background color (color0)
-    (1..16)
+    (0..16)
         .map(|i| {
             let color_str = colors
                 .get(&format!("color{i}"))
@@ -29,8 +28,7 @@ fn logo_colors_from_json() -> WFetchResult<Vec<Color>> {
 }
 
 fn logo_colors_from_xterm() -> WFetchResult<Vec<Color>> {
-    // ignore background color (color0)
-    (1..16).map(crate::xterm::query_term_color).collect()
+    (0..16).map(crate::xterm::query_term_color).collect()
 }
 
 pub fn get_logo_colors() -> WFetchResult<Vec<Color>> {
