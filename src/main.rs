@@ -34,6 +34,11 @@ fn wfetch(args: &WFetchArgs) {
 fn main() {
     let args = WFetchArgs::parse();
 
+    if args.version {
+        println!("wfetch {}", env!("CARGO_PKG_VERSION"));
+        std::process::exit(0);
+    }
+
     // clear screen
     print!("\x1B[2J\x1B[1;1H");
     io::stdout().flush().expect("Failed to flush stdout");

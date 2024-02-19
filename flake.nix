@@ -7,6 +7,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       devenv,
       systems,
@@ -36,7 +37,13 @@
 
       packages = forEachSystem (
         pkgs: rec {
-          wfetch = pkgs.callPackage ./package.nix { };
+          wfetch = pkgs.callPackage ./package.nix {
+            version =
+              if self ? "shortRev" then
+                self.shortRev
+              else
+                nixpkgs.lib.replaceStrings [ "-dirty" ] [ "" ] self.dirtyShortRev;
+          };
           default = wfetch;
         }
       );

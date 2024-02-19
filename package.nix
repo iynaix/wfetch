@@ -1,4 +1,5 @@
 {
+  version,
   lib,
   installShellFiles,
   makeWrapper,
@@ -9,9 +10,11 @@
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
-  version = "0.1.0";
+  inherit version;
 
   src = ./.;
+
+  env.NIX_RELEASE_VERSION = version;
 
   cargoLock.lockFile = ./Cargo.lock;
 

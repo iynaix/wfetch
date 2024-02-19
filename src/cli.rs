@@ -7,6 +7,9 @@ use clap::Parser;
     about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way"
 )]
 pub struct WFetchArgs {
+    #[arg(long, action, help = "print version information and exit")]
+    pub version: bool,
+
     #[arg(long, action, help = "show hollow NixOS logo")]
     pub hollow: bool,
 
