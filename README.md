@@ -20,20 +20,29 @@ Then, include it in your `environment.systemPackages` or `home.packages` by refe
 inputs.wfetch.packages.<system>.default
 ```
 
-## Usage
-
-After installation, run `wfetch` in the terminal.
-
-#### Output of `wfetch --help`
+Alternatively, it can also be run directly:
 
 ```
+nix run github:iynaix/wfetch
+```
+
+## Usage
+
+```console
+$ wfetch --help
 wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way
 
 Usage: wfetch [OPTIONS]
 
 Options:
+      --version
+          print version information and exit
       --hollow
           show hollow NixOS logo
+      --waifu
+          show waifu NixOS logo with dynamic colors
+      --waifu2
+          show waifu NixOS logo 2 with dynamic colors
       --wallpaper [<WALLPAPER>]
           show section of wallpaper
           (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
@@ -64,9 +73,23 @@ Options:
 
 ## Screenshots
 
-<img src="https://i.imgur.com/4nHd6F5.png" /><br/>
+### (default)
 <img src="https://i.imgur.com/gtbUnjL.png" /><br/>
+
+### --hollow
 <img src="https://i.imgur.com/9Fxua7R.png" /><br/>
+
+### --wallpaper
+<img src="https://i.imgur.com/qHGMWzW.png" />
+
+### --waifu
+<img src="https://i.imgur.com/QbFz33S.png" />
+
+### --waifu2
+<img src="https://i.imgur.com/1PhJNDU.png" />
+
+### --wallpaper-ascii
+<img src="https://i.imgur.com/4nHd6F5.png" /><br/>
 
 ## Packaging
 
@@ -78,3 +101,7 @@ To build wfetch from source
     1. [imagemagick](https://imagemagick.org/)
     1. [fastfetch](https://github.com/fastfetch-cli/fastfetch/blob/dev/README.md)
     1. [ascii-image-converter](https://github.com/TheZoraiz/ascii-image-converter)
+
+## Hacking
+
+Just use `nix develop`
