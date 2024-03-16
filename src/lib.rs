@@ -385,8 +385,9 @@ fn last_day_of_month(year: i32, month: u32) -> u32 {
     let month = if month == 12 { 1 } else { month };
     let year = if month == 12 { year + 1 } else { year };
 
-    let first_day_of_next_month = NaiveDate::from_ymd_opt(year, month + 1, 1).expect("");
-    (first_day_of_next_month - chrono::Duration::days(1)).day()
+    let first_day_of_next_month =
+        NaiveDate::from_ymd_opt(year, month + 1, 1).expect("cannot create ymd");
+    (first_day_of_next_month - chrono::Duration::try_days(1).expect("cannot create duration")).day()
 }
 
 #[allow(clippy::cast_precision_loss, clippy::cast_possible_wrap)]
@@ -419,7 +420,7 @@ pub fn challenge_text(args: &WFetchArgs) -> String {
     let now = chrono::offset::Local::now();
 
     let elapsed = now.timestamp() - start.timestamp();
-    let total = end.timestamp() - start.timestamp();
+    let total = end.and_utc().timestamp() - start.timestamp();
 
     let percent = elapsed as f32 / total as f32 * 100.0;
 
