@@ -1,6 +1,6 @@
 use execute::Execute;
 use serde::Deserialize;
-use std::{collections::HashMap, path::Path, process::Stdio};
+use std::{path::Path, process::Stdio};
 
 use crate::{full_path, CommandUtf8};
 
@@ -18,24 +18,21 @@ pub struct Face {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct WallInfo {
-    pub faces: Vec<Face>,
-    #[serde(rename = "1440x2560")]
+    pub filename: String,
+    // faces is unused, keep it as a string
+    pub faces: String,
     pub r1440x2560: String,
-    #[serde(rename = "2256x1504")]
     pub r2256x1504: String,
-    #[serde(rename = "3440x1440")]
     pub r3440x1440: String,
-    #[serde(rename = "1920x1080")]
     pub r1920x1080: String,
-    #[serde(rename = "1x1")]
     pub r1x1: String,
-    pub wallust: Option<String>,
+    pub wallust: String,
 }
 
-/// reads the wallpaper info from wallpapers.json
+/// reads the wallpaper info from wallpapers.csv
 pub fn info(image: &String) -> Option<WallInfo> {
-    let wallpapers_json = full_path("~/Pictures/Wallpapers/wallpapers.json");
-    if !wallpapers_json.exists() {
+    let wallpapers_csv = full_path("~/Pictures/Wallpapers/wallpapers.csv");
+    if !wallpapers_csv.exists() {
         return None;
     }
 
@@ -48,18 +45,24 @@ pub fn info(image: &String) -> Option<WallInfo> {
         .expect("could not convert image path to str");
 
     let reader = std::io::BufReader::new(
-        std::fs::File::open(wallpapers_json).expect("could not open wallpapers.json"),
+        std::fs::File::open(wallpapers_csv).expect("could not open wallpapers.csv"),
     );
-    let mut crops: HashMap<String, WallInfo> =
-        serde_json::from_reader(reader).expect("could not parse wallpapers.json");
-    crops.remove(fname)
+
+    let mut rdr = csv::Reader::from_reader(reader);
+    rdr.deserialize::<WallInfo>()
+        .flatten()
+        .find(|line| line.filename == fname)
 }
 
 /// detect wallpaper using swwww
 fn detect_iynaixos() -> Option<String> {
-    std::fs::read_to_string(full_path("~/.cache/current_wallpaper"))
-        .ok()
-        .filter(|wallpaper| !wallpaper.is_empty())
+    std::fs::read_to_string(
+        dirs::runtime_dir()
+            .expect("could not get XDG_RUNTIME_DIR")
+            .join("current_wallpaper"),
+    )
+    .ok()
+    .filter(|wallpaper| !wallpaper.is_empty())
 }
 
 /// detect wallpaper using swwww
