@@ -97,7 +97,7 @@ To build wfetch from source
 
 - Build dependencies
     1. Rust (cargo, rustc)
-- Runtime dependcies
+- Runtime dependencies
     1. [imagemagick](https://imagemagick.org/)
     1. [fastfetch](https://github.com/fastfetch-cli/fastfetch/blob/dev/README.md)
     1. [ascii-image-converter](https://github.com/TheZoraiz/ascii-image-converter)
