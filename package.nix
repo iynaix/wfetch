@@ -29,16 +29,21 @@ rustPlatform.buildRustPackage {
   '';
 
   preFixup = ''
-    installShellCompletion --bash completions/*.bash
-    installShellCompletion --fish completions/*.fish
-    installShellCompletion --zsh completions/_*
+    installShellCompletion \
+      --bash completions/*.bash \
+      --fish completions/*.fish \
+      --zsh completions/_*
   '';
 
   postFixup = ''
     wrapProgram $out/bin/wfetch \
-      --prefix PATH : "${lib.makeBinPath [ ascii-image-converter ]}" \
-      --prefix PATH : "${lib.makeBinPath [ fastfetch ]}" \
-      --prefix PATH : "${lib.makeBinPath [ imagemagick ]}"
+      --prefix PATH : "${
+        lib.makeBinPath [
+          ascii-image-converter
+          fastfetch
+          imagemagick
+        ]
+      }"
   '';
 
   meta = with lib; {

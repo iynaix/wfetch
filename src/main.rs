@@ -41,7 +41,7 @@ fn main() {
 
     // clear screen
     print!("\x1B[2J\x1B[1;1H");
-    io::stdout().flush().expect("Failed to flush stdout");
+    io::stdout().flush().expect("Failed to clear screen");
 
     // initial display of wfetch
     wfetch(&args);
@@ -53,7 +53,9 @@ fn main() {
 
     // hide terminal cursor
     print!("\x1B[?25l");
-    io::stdout().flush().expect("Failed to flush stdout");
+    io::stdout()
+        .flush()
+        .expect("Failed to hide terminal cursor");
 
     // handle SIGUSR2 to update colors
     // https://rust-cli.github.io/book/in-depth/signals.html#handling-other-types-of-signals
@@ -65,7 +67,9 @@ fn main() {
                 SIGINT => {
                     // restore terminal cursor
                     print!("\x1B[?25h");
-                    io::stdout().flush().expect("Failed to flush stdout");
+                    io::stdout()
+                        .flush()
+                        .expect("Failed to restore terminal cursor");
                     std::process::exit(0);
                 }
                 SIGUSR2 => {
