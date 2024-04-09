@@ -19,14 +19,10 @@ pub struct Face {
 #[derive(Debug, Deserialize, Clone)]
 pub struct WallInfo {
     pub filename: String,
-    // faces is unused, keep it as a string
-    pub faces: String,
-    pub r1440x2560: String,
-    pub r2256x1504: String,
-    pub r3440x1440: String,
-    pub r1920x1080: String,
+    pub width: u32,
+    pub height: u32,
+    #[serde(rename = "1x1")]
     pub r1x1: String,
-    pub wallust: String,
 }
 
 /// reads the wallpaper info from wallpapers.csv
@@ -52,6 +48,12 @@ pub fn info(image: &String) -> Option<WallInfo> {
     rdr.deserialize::<WallInfo>()
         .flatten()
         .find(|line| line.filename == fname)
+        .map(|mut info| {
+            // calculate square to crop from image dimensions
+            let size = std::cmp::min(info.width, info.height);
+            info.r1x1 = format!("{size}x{size}+{}", info.r1x1,);
+            info
+        })
 }
 
 /// detect wallpaper using swwww
