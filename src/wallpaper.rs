@@ -48,12 +48,6 @@ pub fn info(image: &String) -> Option<WallInfo> {
     rdr.deserialize::<WallInfo>()
         .flatten()
         .find(|line| line.filename == fname)
-        .map(|mut info| {
-            // calculate square to crop from image dimensions
-            let size = std::cmp::min(info.width, info.height);
-            info.r1x1 = format!("{size}x{size}+{}", info.r1x1,);
-            info
-        })
 }
 
 /// detect wallpaper using swwww
