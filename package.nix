@@ -49,6 +49,7 @@ rustPlatform.buildRustPackage {
   meta = with lib; {
     description = "iynaix's custom fetch";
     homepage = "https://github.com/iynaix/dotfiles";
+    mainProgram = "wfetch";
     license = licenses.mit;
     maintainers = [ maintainers.iynaix ];
   };
