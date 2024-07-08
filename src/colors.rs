@@ -58,7 +58,7 @@ impl Color {
             "-fill",
             &self.to_string(),
             "-opaque",
-            &opaque,
+            opaque,
         ]
         .iter()
         .map(std::string::ToString::to_string)

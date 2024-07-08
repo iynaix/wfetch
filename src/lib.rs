@@ -109,8 +109,9 @@ fn imagemagick_wallpaper(args: &WFetchArgs, wallpaper_arg: &Option<String>) -> C
 
     // use imagemagick to crop and resize the wallpaper
     execute::command_args!(
-        "convert",
+        "magick",
         wall,
+        "-strip",
         "-crop",
         crop_area,
         "-resize",
@@ -232,6 +233,11 @@ fn wm_module() -> serde_json::Value {
 }
 
 fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
+    let logo_backend = match env::var("KONSOLE_VERSION") {
+        Ok(_) => "iterm",
+        Err(_) => "kitty-direct",
+    };
+
     // from wallpaper, no need to compute contrasting colors
     if args.wallpaper_ascii.is_some() {
         return json!({
@@ -241,8 +247,7 @@ fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
     }
     if args.wallpaper.is_some() {
         return json!({
-            // ghostty supports kitty image protocol
-            "type": "kitty-direct",
+            "type": logo_backend,
             "source": create_wallpaper_image(args),
             "preserveAspectRatio": true,
         });
@@ -267,14 +272,14 @@ fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
 
             if args.waifu {
                 return json!({
-                    "type": "kitty-direct",
+                    "type": logo_backend,
                     "source": logos::create_nixos_logo1(args, &color1, &color2),
                     "preserveAspectRatio": true,
                 });
             }
             if args.waifu2 {
                 return json!({
-                    "type": "kitty-direct",
+                    "type": logo_backend,
                     "source": logos::create_nixos_logo2(args, &color1, &color2),
                     "preserveAspectRatio": true,
                 });

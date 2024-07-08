@@ -131,6 +131,25 @@ fn detect_gsettings() -> Option<String> {
     })
 }
 
+fn detect_plasma() -> Option<String> {
+    let plasma_script = r#"print(desktops().map(d => {d.currentConfigGroup=["Wallpaper", "org.kde.image", "General"]; return d.readConfig("Image")}).join("\n"))"#;
+    execute::command_args!(
+        "qdbus",
+        "org.kde.plasmashell",
+        "/PlasmaShell",
+        "org.kde.PlasmaShell.evaluateScript",
+        plasma_script
+    )
+    .execute_stdout_lines()
+    .first()
+    .map(|wallpaper| {
+        wallpaper
+            .strip_prefix("file://")
+            .unwrap_or(wallpaper)
+            .to_string()
+    })
+}
+
 /// returns full path to the wallpaper
 pub fn detect(wallpaper_arg: &Option<String>) -> Option<String> {
     [
@@ -141,6 +160,7 @@ pub fn detect(wallpaper_arg: &Option<String>) -> Option<String> {
         detect_swaybg(),
         detect_hyprpaper(),
         detect_gsettings(), // gnome / cinnamon / mate
+        detect_plasma(),    // kde
     ]
     .iter()
     .find(|&wallpaper| wallpaper.is_some())

@@ -17,7 +17,7 @@ wfetch is an opinionated command-line fetch tool for displaying system informati
 
 Then, include it in your `environment.systemPackages` or `home.packages` by referencing the input:
 ```
-inputs.wfetch.packages.<system>.default
+inputs.wfetch.packages.${pkgs.system}.default
 ```
 
 Alternatively, it can also be run directly:

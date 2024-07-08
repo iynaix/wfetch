@@ -50,7 +50,7 @@ pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
     let output = create_output_file("wfetch.png");
 
     execute::command_args!(
-        "convert",
+        "magick",
         // replace color 1
         &asset_path("nixos1.png"),
     )
