@@ -57,6 +57,9 @@ pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
     .args(&color1.imagemagick_replace_args("#5278c3"))
     .args(&color2.imagemagick_replace_args("#7fbae4"))
     .args(image_resize_args(args, 340))
+    // .arg("-strip")
+    .arg("-compress")
+    .arg("None")
     .arg(&output)
     .execute()
     .expect("failed to create nixos logo");

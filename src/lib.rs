@@ -324,7 +324,7 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
     let wm = wm_module();
     let terminal = json!({ "type": "terminal", "key": " TER", "format": "{3}" });
     let cpu = json!({ "type": "cpu", "key": " CPU", "format": "{1} ({5})", });
-    let gpu = json!({ "type": "gpu", "key": " GPU", "driverSpecific": true, "format": "{2}", "forceVulkan": true, "hideType": "integrated" });
+    let gpu = json!({ "type": "gpu", "key": " GPU", "driverSpecific": true, "format": "{2}", "hideType": "integrated" });
     let memory =
         json!({ "type": "memory", "key": "󰆼 RAM", "format": "{/1}{-}{/}{/2}{-}{/}{} / {}" });
     let color = json!({ "type": "colors", "symbol": "circle", });
@@ -367,8 +367,12 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
         "display": {
             "separator": "   ",
             // icon + space + 3 letters + separator
-            "keyWidth": 1 + 1 + 3 + 3,
-            "binaryPrefix": "si",
+            "key": {
+                "width": 1 + 1 + 3 + 3,
+            },
+            "size": {
+                "binaryPrefix": "si",
+            },
         },
         "logo": logo_module(args, nixos),
         "modules": modules,
