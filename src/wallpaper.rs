@@ -82,9 +82,14 @@ fn detect_swww() -> Option<String> {
 fn detect_swaybg() -> Option<String> {
     let sys = sysinfo::System::new_all();
 
-    if let Some(process) = sys.processes_by_exact_name("swaybg").next() {
+    if let Some(process) = sys.processes_by_exact_name("swaybg".as_ref()).next() {
         if let Some(wallpaper) = process.cmd().last() {
-            return Some(wallpaper.to_string());
+            return Some(
+                wallpaper
+                    .clone()
+                    .into_string()
+                    .expect("could not convert wallpaper to string"),
+            );
         }
     }
 

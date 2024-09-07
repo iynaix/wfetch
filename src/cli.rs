@@ -103,7 +103,8 @@ pub struct WFetchArgs {
         long,
         value_enum,
         help = "type of shell completion to generate",
-        hide = true
+        hide = true,
+        exclusive = true
     )]
     pub generate: Option<ShellCompletion>,
 }

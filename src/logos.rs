@@ -54,8 +54,8 @@ pub fn create_nixos_logo1(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
         // replace color 1
         &asset_path("nixos1.png"),
     )
-    .args(&color1.imagemagick_replace_args("#5278c3"))
-    .args(&color2.imagemagick_replace_args("#7fbae4"))
+    .args(color1.imagemagick_replace_args("#5278c3"))
+    .args(color2.imagemagick_replace_args("#7fbae4"))
     .args(image_resize_args(args, 340))
     // .arg("-strip")
     .arg("-compress")
@@ -78,7 +78,7 @@ pub fn create_nixos_logo2(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
             "Multiply",
             "-composite",
         ])
-        .args(&color1.imagemagick_replace_args("black"))
+        .args(color1.imagemagick_replace_args("black"))
         // color 2 using mask2
         .args([
             &asset_path("nixos2-mask2.jpg"),
@@ -86,7 +86,7 @@ pub fn create_nixos_logo2(args: &WFetchArgs, color1: &Color, color2: &Color) -> 
             "Multiply",
             "-composite",
         ])
-        .args(&color2.imagemagick_replace_args("black"))
+        .args(color2.imagemagick_replace_args("black"))
         // set transparency using original image
         .args([
             &asset_path("nixos2.png"),
