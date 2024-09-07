@@ -26,13 +26,11 @@ rustPlatform.buildRustPackage {
 
   postInstall = ''
     cp -r $src/assets $out
-  '';
 
-  preFixup = ''
-    installShellCompletion \
-      --bash completions/*.bash \
-      --fish completions/*.fish \
-      --zsh completions/_*
+    installShellCompletion --cmd wfetch \
+      --bash <($out/bin/wfetch --generate bash) \
+      --fish <($out/bin/wfetch --generate fish) \
+      --zsh <($out/bin/wfetch --generate zsh)
   '';
 
   postFixup = ''

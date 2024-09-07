@@ -9,7 +9,10 @@ use std::{
     thread,
     time::Duration,
 };
-use wfetch::{cli::WFetchArgs, create_fastfetch_config, create_output_file, show_wallpaper_ascii};
+use wfetch::{
+    cli::{generate_completions, WFetchArgs},
+    create_fastfetch_config, create_output_file, show_wallpaper_ascii,
+};
 
 fn wfetch(args: &WFetchArgs) {
     let config_jsonc = create_output_file("wfetch.jsonc");
@@ -36,7 +39,12 @@ fn main() {
 
     if args.version {
         println!("wfetch {}", env!("CARGO_PKG_VERSION"));
-        std::process::exit(0);
+        return;
+    }
+
+    // print shell completions
+    if let Some(shell) = args.generate {
+        return generate_completions(&shell);
     }
 
     // clear screen
@@ -48,7 +56,7 @@ fn main() {
 
     // not showing waifu / wallpaper, no need to wait for signal
     if !args.listen {
-        std::process::exit(0);
+        return;
     }
 
     // hide terminal cursor

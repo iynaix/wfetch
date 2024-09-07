@@ -1,4 +1,5 @@
-use clap::Parser;
+use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap_complete::{generate, Shell};
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug)]
@@ -6,6 +7,11 @@ use clap::Parser;
     name = "wfetch",
     about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way"
 )]
+// only one type of logo is allowed
+#[command(group = ArgGroup::new("logo")
+    .args(&["hollow", "waifu", "waifu2", "wallpaper", "wallpaper_ascii"])
+    .multiple(false))]
+#[command(group = ArgGroup::new("image_options").args(&["wallpaper", "waifu", "waifu2"]))]
 pub struct WFetchArgs {
     #[arg(long, action, help = "print version information and exit")]
     pub version: bool,
@@ -76,9 +82,45 @@ pub struct WFetchArgs {
     #[arg(long, action, help = "do not show colored keys")]
     pub no_color_keys: bool,
 
-    #[arg(long, action, help = "image size in pixels")]
+    #[arg(
+        long,
+        action,
+        help = "image size in pixels",
+        requires = "image_options"
+    )]
     pub image_size: Option<i32>,
 
-    #[arg(long, action, default_value = "70", help = "ascii size in characters")]
+    #[arg(
+        long,
+        action,
+        default_value = "70",
+        help = "ascii size in characters",
+        requires = "wallpaper_ascii"
+    )]
     pub ascii_size: i32,
+
+    #[arg(
+        long,
+        value_enum,
+        help = "type of shell completion to generate",
+        hide = true
+    )]
+    pub generate: Option<ShellCompletion>,
+}
+
+#[derive(Subcommand, ValueEnum, Debug, Clone)]
+pub enum ShellCompletion {
+    Bash,
+    Zsh,
+    Fish,
+}
+
+pub fn generate_completions(shell_completion: &ShellCompletion) {
+    let mut cmd = WFetchArgs::command();
+
+    match shell_completion {
+        ShellCompletion::Bash => generate(Shell::Bash, &mut cmd, "focal", &mut std::io::stdout()),
+        ShellCompletion::Zsh => generate(Shell::Zsh, &mut cmd, "focal", &mut std::io::stdout()),
+        ShellCompletion::Fish => generate(Shell::Fish, &mut cmd, "focal", &mut std::io::stdout()),
+    }
 }
