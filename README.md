@@ -30,13 +30,11 @@ nix run github:iynaix/wfetch
 
 ```console
 $ wfetch --help
-wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way
+fetch is an opinionated command-line fetch tool for displaying system information in a pretty way
 
 Usage: wfetch [OPTIONS]
 
 Options:
-      --version
-          print version information and exit
       --hollow
           show hollow NixOS logo
       --waifu
@@ -69,6 +67,8 @@ Options:
           ascii size in characters [default: 70]
   -h, --help
           Print help
+  -V, --version
+          Print version
 ```
 
 ## Screenshots
@@ -96,11 +96,11 @@ Options:
 To build wfetch from source
 
 - Build dependencies
-    1. Rust (cargo, rustc)
+    - Rust (cargo, rustc)
 - Runtime dependencies
-    1. [imagemagick](https://imagemagick.org/)
-    1. [fastfetch](https://github.com/fastfetch-cli/fastfetch/blob/dev/README.md)
-    1. [ascii-image-converter](https://github.com/TheZoraiz/ascii-image-converter)
+    - [imagemagick](https://imagemagick.org/)
+    - [fastfetch](https://github.com/fastfetch-cli/fastfetch/blob/dev/README.md)
+    - [ascii-image-converter](https://github.com/TheZoraiz/ascii-image-converter)
 
 ## Hacking
 

@@ -37,11 +37,6 @@ fn wfetch(args: &WFetchArgs) {
 fn main() {
     let args = WFetchArgs::parse();
 
-    if args.version {
-        println!("wfetch {}", env!("CARGO_PKG_VERSION"));
-        return;
-    }
-
     // print shell completions
     if let Some(shell) = args.generate {
         return generate_completions(&shell);

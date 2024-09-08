@@ -5,7 +5,8 @@ use clap_complete::{generate, Shell};
 #[derive(Parser, Debug)]
 #[command(
     name = "wfetch",
-    about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way"
+    about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way",
+    version = env!("CARGO_PKG_VERSION"),
 )]
 // only one type of logo is allowed
 #[command(group = ArgGroup::new("logo")
@@ -13,9 +14,6 @@ use clap_complete::{generate, Shell};
     .multiple(false))]
 #[command(group = ArgGroup::new("image_options").args(&["wallpaper", "waifu", "waifu2"]))]
 pub struct WFetchArgs {
-    #[arg(long, action, help = "print version information and exit")]
-    pub version: bool,
-
     #[arg(long, action, help = "show hollow NixOS logo")]
     pub hollow: bool,
 
