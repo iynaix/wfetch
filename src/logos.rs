@@ -2,7 +2,7 @@ use std::{collections::HashMap, env, str::FromStr};
 
 use execute::Execute;
 use fast_image_resize::images::Image;
-use fast_image_resize::{IntoImageView, ResizeOptions, Resizer};
+use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
 use image::codecs::png::PngEncoder;
 use image::{ImageEncoder, ImageReader};
 use serde_json::{json, Value as JsonValue};
@@ -68,11 +68,16 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> String {
 
     let wall_info = wallpaper::info(&wall);
 
+    let img = ImageReader::open(wall)
+        .expect("could not open image")
+        .decode()
+        .expect("could not decode image");
+
     let fallback_crop = {
-        let (width, height) =
-            image::image_dimensions(&wall).expect("could not get image dimensions");
-        let width = f64::from(width);
-        let height = f64::from(height);
+        // let (width, height) =
+        //     image::image_dimensions(&wall).expect("could not get image dimensions");
+        let width = f64::from(img.width());
+        let height = f64::from(img.height());
 
         // get square crop for imagemagick
         if width > height {
@@ -103,11 +108,6 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> String {
         .image_size
         .unwrap_or(if args.challenge { 380 } else { 300 });
 
-    let img = ImageReader::open(wall)
-        .expect("could not open image")
-        .decode()
-        .expect("could not decode image");
-
     #[allow(clippy::cast_sign_loss)]
     let mut dest = Image::new(
         dst_size as u32,
@@ -129,7 +129,7 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> String {
             dst_size as u32,
             img.color().into(),
         )
-        .expect("failed to write webp for swww");
+        .expect("failed to write wallpaper crop");
 
     output
 }
@@ -163,20 +163,56 @@ impl Logo {
     pub fn waifu1(&self, color1: &Color, color2: &Color) -> JsonValue {
         let output = create_output_file("wfetch.png");
 
-        execute::command_args!(
-            "magick",
-            // replace color 1
-            &asset_path("nixos1.png"),
-        )
-        .args(color1.imagemagick_replace_args("#5278c3"))
-        .args(color2.imagemagick_replace_args("#7fbae4"))
-        .args(image_resize_args(&self.args, 340))
-        // .arg("-strip")
-        .arg("-compress")
-        .arg("None")
-        .arg(&output)
-        .execute()
-        .expect("failed to create nixos logo");
+        let replace1: Color = "#5278c3".parse().expect("unable to parse hex color");
+        let replace2: Color = "#7fbae4".parse().expect("unable to parse hex color");
+
+        let mut img = ImageReader::open(asset_path("nixos1.png"))
+            .expect("could not open image")
+            .decode()
+            .expect("could not decode image")
+            .into_rgba8();
+
+        let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
+
+        for pixel in img.pixels_mut() {
+            if replace1.distance_rgba(pixel) < fuzz {
+                *pixel = color1.to_rgba(pixel.0[3]);
+            } else if replace2.distance_rgba(pixel) < fuzz {
+                *pixel = color2.to_rgba(pixel.0[3]);
+            }
+        }
+
+        let dest_h = self
+            .args
+            .image_size
+            .unwrap_or(if self.args.challenge { 380 } else { 300 });
+
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        let dest_w = (f64::from(dest_h) / f64::from(img.height()) * f64::from(img.width())) as u32;
+
+        let src_view =
+            Image::from_vec_u8(img.width(), img.height(), img.into_raw(), PixelType::U8x4)
+                .expect("could not create image view");
+
+        #[allow(clippy::cast_sign_loss)]
+        let mut dest = Image::new(dest_w, dest_h as u32, PixelType::U8x4);
+        Resizer::new()
+            .resize(&src_view, &mut dest, None)
+            .expect("failed to resize image");
+
+        let mut result_buf =
+            std::io::BufWriter::new(std::fs::File::create(&output).expect("could not create file"));
+
+        #[allow(clippy::cast_sign_loss)]
+        PngEncoder::new(&mut result_buf)
+            .write_image(
+                dest.buffer(),
+                dest_w,
+                dest_h as u32,
+                image::ColorType::Rgba8.into(),
+            )
+            .expect("failed to write png for waifu1");
 
         Self::with_backend(&output)
     }

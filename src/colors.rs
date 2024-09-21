@@ -18,7 +18,7 @@ pub const TERMINAL_COLORS: [&str; 16] = [
 ];
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct Color(u8, u8, u8);
+pub struct Color(pub u8, pub u8, pub u8);
 
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -31,9 +31,11 @@ impl std::str::FromStr for Color {
 
     // Function to parse a color string in #RRGGBB format into RGB components
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let r = u8::from_str_radix(&s[1..3], 16)?;
-        let g = u8::from_str_radix(&s[3..5], 16)?;
-        let b = u8::from_str_radix(&s[5..7], 16)?;
+        let s = s.trim_start_matches('#');
+
+        let r = u8::from_str_radix(&s[0..2], 16)?;
+        let g = u8::from_str_radix(&s[2..4], 16)?;
+        let b = u8::from_str_radix(&s[4..6], 16)?;
 
         Ok(Self(r, g, b))
     }
@@ -44,11 +46,22 @@ impl Color {
         Self(r, g, b)
     }
 
-    fn color_distance(&self, color2: &Self) -> f64 {
-        let dr = f64::from(i16::from(self.0) - i16::from(color2.0));
-        let dg = f64::from(i16::from(self.1) - i16::from(color2.1));
-        let db = f64::from(i16::from(self.2) - i16::from(color2.2));
+    pub fn distance(&self, color2: &Self) -> f64 {
+        let dr = f64::from(self.0) - f64::from(color2.0);
+        let dg = f64::from(self.1) - f64::from(color2.1);
+        let db = f64::from(self.2) - f64::from(color2.2);
         db.mul_add(db, dr.mul_add(dr, dg * dg)).sqrt()
+    }
+
+    pub fn distance_rgba(&self, color2: &image::Rgba<u8>) -> f64 {
+        let dr = f64::from(self.0) - f64::from(color2.0[0]);
+        let dg = f64::from(self.1) - f64::from(color2.0[1]);
+        let db = f64::from(self.2) - f64::from(color2.0[2]);
+        db.mul_add(db, dr.mul_add(dr, dg * dg)).sqrt()
+    }
+
+    pub const fn to_rgba(&self, a: u8) -> image::Rgba<u8> {
+        image::Rgba([self.0, self.1, self.2, a])
     }
 
     pub fn imagemagick_replace_args(&self, opaque: &str) -> Vec<String> {
@@ -77,7 +90,7 @@ pub fn most_contrasting_pair(colors: &[Color]) -> (Color, Color) {
                 continue;
             }
 
-            let distance = color1.color_distance(color2);
+            let distance = color1.distance(color2);
             if distance > max_distance {
                 max_distance = distance;
                 most_contrasting_pair = (color1.clone(), color2.clone());
