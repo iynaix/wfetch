@@ -1,9 +1,9 @@
-use crate::{cli::WFetchArgs, colors::TERMINAL_COLORS, wallpaper::WallInfo};
+use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use execute::Execute;
+use logos::{imagemagick_wallpaper, Logo};
 use serde_json::{json, Value};
 use std::{
-    collections::HashMap,
     env,
     path::PathBuf,
     process::{Command, Stdio},
@@ -75,60 +75,6 @@ pub fn create_output_file(filename: &str) -> String {
         .to_str()
         .expect("could not convert output dir to str")
         .to_string()
-}
-
-fn imagemagick_wallpaper(args: &WFetchArgs, wallpaper_arg: &Option<String>) -> Command {
-    // read current wallpaper
-    let wall = wallpaper::detect(wallpaper_arg).unwrap_or_else(|| {
-        eprintln!("Error: could not detect wallpaper!");
-        std::process::exit(1);
-    });
-
-    let wallpaper_info = wallpaper::info(&wall);
-
-    let crop_area = if let Some(WallInfo {
-        r1x1: crop_area, ..
-    }) = &wallpaper_info
-    {
-        crop_area.to_owned()
-    } else {
-        let (width, height) =
-            image::image_dimensions(&wall).expect("could not get image dimensions");
-
-        // get square crop for imagemagick
-        if width > height {
-            format!("{height}x{height}+{}+0", (width - height) / 2)
-        } else {
-            format!("{width}x{width}+0+{}", (height - width) / 2)
-        }
-    };
-
-    let image_size = args
-        .image_size
-        .unwrap_or(if args.challenge { 380 } else { 300 });
-
-    // use imagemagick to crop and resize the wallpaper
-    execute::command_args!(
-        "magick",
-        wall,
-        "-strip",
-        "-crop",
-        crop_area,
-        "-resize",
-        format!("{image_size}x{image_size}"),
-    )
-}
-
-/// creates the wallpaper image that fastfetch will display
-fn create_wallpaper_image(args: &WFetchArgs) -> String {
-    let output = create_output_file("wfetch.png");
-
-    imagemagick_wallpaper(args, &args.wallpaper)
-        .arg(&output)
-        .execute()
-        .expect("failed to execute imagemagick");
-
-    output
 }
 
 /// creates the wallpaper ascii that fastfetch will display
@@ -232,87 +178,6 @@ fn wm_module() -> serde_json::Value {
     }
 }
 
-fn logo_module(args: &WFetchArgs, nixos: bool) -> serde_json::Value {
-    let logo_backend = match env::var("KONSOLE_VERSION") {
-        Ok(_) => "iterm",
-        Err(_) => "kitty-direct",
-    };
-
-    // from wallpaper, no need to compute contrasting colors
-    if args.wallpaper_ascii.is_some() {
-        return json!({
-            "type": "auto",
-            "source": "-"
-        });
-    }
-    if args.wallpaper.is_some() {
-        return json!({
-            "type": logo_backend,
-            "source": create_wallpaper_image(args),
-            "preserveAspectRatio": true,
-        });
-    }
-
-    match logos::get_logo_colors() {
-        Err(_) => {
-            assert!(!(args.waifu || args.waifu2), "failed to get logo colors");
-
-            if args.hollow {
-                let hollow = asset_path("nixos_hollow.txt");
-                return json!({
-                    "source": hollow,
-                    "color": json!({ "1": "blue", "2": "cyan" }),
-                });
-            }
-        }
-
-        Ok(term_colors) => {
-            // remove background color to get contrast
-            let (color1, color2) = colors::most_contrasting_pair(&term_colors[1..]);
-
-            if args.waifu {
-                return json!({
-                    "type": logo_backend,
-                    "source": logos::create_nixos_logo1(args, &color1, &color2),
-                    "preserveAspectRatio": true,
-                });
-            }
-            if args.waifu2 {
-                return json!({
-                    "type": logo_backend,
-                    "source": logos::create_nixos_logo2(args, &color1, &color2),
-                    "preserveAspectRatio": true,
-                });
-            }
-
-            // get named colors to pass to fastfetch
-            let named_colors: HashMap<_, _> = term_colors.iter().zip(TERMINAL_COLORS).collect();
-            let source_colors = json!({
-                "1": (*named_colors.get(&color1).unwrap_or(&"blue")).to_string(),
-                "2": (*named_colors.get(&color2).unwrap_or(&"cyan")).to_string(),
-            });
-
-            if args.hollow {
-                let hollow = asset_path("nixos_hollow.txt");
-                return json!({
-                    "source": hollow,
-                    "color": source_colors,
-                });
-            }
-
-            if nixos {
-                return json!({
-                    "source": "nixos",
-                    "color": source_colors,
-                });
-            }
-        }
-    }
-
-    // use fastfetch default
-    json!({ "source": null })
-}
-
 #[allow(clippy::similar_names)] // gpu and cpu trips this
 pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
     let nixos = is_nixos();
@@ -374,7 +239,7 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
                 "binaryPrefix": "si",
             },
         },
-        "logo": logo_module(args, nixos),
+        "logo": Logo::new(args, nixos).module(),
         "modules": modules,
     });
 

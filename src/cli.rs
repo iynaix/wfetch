@@ -2,7 +2,7 @@ use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{generate, Shell};
 
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(
     name = "wfetch",
     about = "wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way",
