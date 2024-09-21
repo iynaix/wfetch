@@ -1,6 +1,10 @@
-use std::{collections::HashMap, env, process::Command, str::FromStr};
+use std::{collections::HashMap, env, str::FromStr};
 
 use execute::Execute;
+use fast_image_resize::images::Image;
+use fast_image_resize::{IntoImageView, ResizeOptions, Resizer};
+use image::codecs::png::PngEncoder;
+use image::{ImageEncoder, ImageReader};
 use serde_json::{json, Value as JsonValue};
 
 use crate::{
@@ -52,56 +56,80 @@ fn image_resize_args(args: &WFetchArgs, smaller_size: i32) -> Vec<String> {
     vec!["-resize".to_string(), format!("{size}x{size}")]
 }
 
-pub fn imagemagick_wallpaper(args: &WFetchArgs, wallpaper_arg: &Option<String>) -> Command {
+/// creates the wallpaper image that fastfetch will display
+pub fn resize_wallpaper(args: &WFetchArgs) -> String {
+    let output = create_output_file("wfetch.png");
+
     // read current wallpaper
-    let wall = wallpaper::detect(wallpaper_arg).unwrap_or_else(|| {
+    let wall = wallpaper::detect(&args.wallpaper).unwrap_or_else(|| {
         eprintln!("Error: could not detect wallpaper!");
         std::process::exit(1);
     });
 
-    let wallpaper_info = wallpaper::info(&wall);
+    let wall_info = wallpaper::info(&wall);
 
-    let crop_area = if let Some(WallInfo {
-        r1x1: crop_area, ..
-    }) = &wallpaper_info
-    {
-        crop_area.to_owned()
-    } else {
+    let fallback_crop = {
         let (width, height) =
             image::image_dimensions(&wall).expect("could not get image dimensions");
+        let width = f64::from(width);
+        let height = f64::from(height);
 
         // get square crop for imagemagick
         if width > height {
-            format!("{height}x{height}+{}+0", (width - height) / 2)
+            (height, height, (width - height) / 2.0, 0.0)
         } else {
-            format!("{width}x{width}+0+{}", (height - width) / 2)
+            (width, width, 0.0, (height - width) / 2.0)
         }
     };
 
-    let image_size = args
+    let (w, h, x, y) = if let Some(WallInfo {
+        r1x1: crop_area, ..
+    }) = &wall_info
+    {
+        let geometry: Vec<_> = crop_area
+            .split(|c| c == '+' || c == 'x')
+            .filter_map(|s| s.parse::<f64>().ok())
+            .collect();
+
+        match geometry.as_slice() {
+            &[w, h, x, y] => (w, h, x, y),
+            _ => fallback_crop,
+        }
+    } else {
+        fallback_crop
+    };
+
+    let dst_size = args
         .image_size
         .unwrap_or(if args.challenge { 380 } else { 300 });
 
-    // use imagemagick to crop and resize the wallpaper
-    execute::command_args!(
-        "magick",
-        wall,
-        "-strip",
-        "-crop",
-        crop_area,
-        "-resize",
-        format!("{image_size}x{image_size}"),
-    )
-}
+    let img = ImageReader::open(wall)
+        .expect("could not open image")
+        .decode()
+        .expect("could not decode image");
 
-/// creates the wallpaper image that fastfetch will display
-fn create_wallpaper_image(args: &WFetchArgs) -> String {
-    let output = create_output_file("wfetch.png");
+    #[allow(clippy::cast_sign_loss)]
+    let mut dest = Image::new(
+        dst_size as u32,
+        dst_size as u32,
+        img.pixel_type().expect("could not get pixel type"),
+    );
+    Resizer::new()
+        .resize(&img, &mut dest, &ResizeOptions::new().crop(x, y, w, h))
+        .expect("failed to resize image");
 
-    imagemagick_wallpaper(args, &args.wallpaper)
-        .arg(&output)
-        .execute()
-        .expect("failed to execute imagemagick");
+    let mut result_buf =
+        std::io::BufWriter::new(std::fs::File::create(&output).expect("could not create file"));
+
+    #[allow(clippy::cast_sign_loss)]
+    PngEncoder::new(&mut result_buf)
+        .write_image(
+            dest.buffer(),
+            dst_size as u32,
+            dst_size as u32,
+            img.color().into(),
+        )
+        .expect("failed to write webp for swww");
 
     output
 }
@@ -195,7 +223,7 @@ impl Logo {
             return json!({ "type": "auto", "source": "-" });
         }
         if self.args.wallpaper.is_some() {
-            return Self::with_backend(&create_wallpaper_image(&self.args));
+            return Self::with_backend(&resize_wallpaper(&self.args));
         }
 
         match get_logo_colors() {

@@ -1,7 +1,7 @@
 use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use execute::Execute;
-use logos::{imagemagick_wallpaper, Logo};
+use logos::{resize_wallpaper, Logo};
 use serde_json::{json, Value};
 use std::{
     env,
@@ -79,8 +79,7 @@ pub fn create_output_file(filename: &str) -> String {
 
 /// creates the wallpaper ascii that fastfetch will display
 pub fn show_wallpaper_ascii(args: &WFetchArgs, fastfetch: &mut Command) {
-    let mut imagemagick = imagemagick_wallpaper(args, &args.wallpaper_ascii);
-    imagemagick.arg("-");
+    let output = resize_wallpaper(args);
 
     let mut ascii_converter = Command::new("ascii-image-converter");
     ascii_converter
@@ -89,10 +88,10 @@ pub fn show_wallpaper_ascii(args: &WFetchArgs, fastfetch: &mut Command) {
         .args(["--threshold", "50"])
         .arg("--width")
         .arg(args.ascii_size.to_string())
-        .arg("-"); // load from stdin
+        .arg(output); // load from stdin
 
-    imagemagick
-        .execute_multiple_output(&mut [&mut ascii_converter, fastfetch])
+    ascii_converter
+        .execute_multiple_output(&mut [fastfetch])
         .expect("failed to show ascii wallpaper");
 }
 
