@@ -1,10 +1,9 @@
 use std::{collections::HashMap, env, str::FromStr};
 
-use execute::Execute;
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
 use image::codecs::png::PngEncoder;
-use image::{ImageEncoder, ImageReader};
+use image::{ImageEncoder, ImageReader, Rgba};
 use serde_json::{json, Value as JsonValue};
 
 use crate::{
@@ -45,17 +44,6 @@ pub fn get_logo_colors() -> WFetchResult<Vec<Color>> {
     logo_colors_from_json().or_else(|_| logo_colors_from_xterm())
 }
 
-/// gets the image
-fn image_resize_args(args: &WFetchArgs, smaller_size: i32) -> Vec<String> {
-    let size = args.image_size.unwrap_or(if args.challenge {
-        smaller_size + 80
-    } else {
-        smaller_size
-    });
-
-    vec!["-resize".to_string(), format!("{size}x{size}")]
-}
-
 /// creates the wallpaper image that fastfetch will display
 pub fn resize_wallpaper(args: &WFetchArgs) -> String {
     let output = create_output_file("wfetch.png");
@@ -79,7 +67,7 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> String {
         let width = f64::from(img.width());
         let height = f64::from(img.height());
 
-        // get square crop for imagemagick
+        // get basic square crop in the center
         if width > height {
             (height, height, (width - height) / 2.0, 0.0)
         } else {
@@ -176,9 +164,9 @@ impl Logo {
 
         for pixel in img.pixels_mut() {
             if replace1.distance_rgba(pixel) < fuzz {
-                *pixel = color1.to_rgba(pixel.0[3]);
+                *pixel = color1.to_rgba(pixel[3]);
             } else if replace2.distance_rgba(pixel) < fuzz {
-                *pixel = color2.to_rgba(pixel.0[3]);
+                *pixel = color2.to_rgba(pixel[3]);
             }
         }
 
@@ -220,35 +208,82 @@ impl Logo {
     pub fn waifu2(&self, color1: &Color, color2: &Color) -> JsonValue {
         let output = create_output_file("wfetch.png");
 
-        execute::command_args!("convert", &asset_path("nixos2.png"),)
-            // color 1 using mask1
-            .args([
-                &asset_path("nixos2-mask1.jpg"),
-                "-compose",
-                "Multiply",
-                "-composite",
-            ])
-            .args(color1.imagemagick_replace_args("black"))
-            // color 2 using mask2
-            .args([
-                &asset_path("nixos2-mask2.jpg"),
-                "-compose",
-                "Multiply",
-                "-composite",
-            ])
-            .args(color2.imagemagick_replace_args("black"))
-            // set transparency using original image
-            .args([
-                &asset_path("nixos2.png"),
-                "-compose",
-                "CopyOpacity",
-                "-composite",
-            ])
-            // finally resize
-            .args(image_resize_args(&self.args, 305))
-            .arg(&output)
-            .execute()
-            .expect("failed to create nixos logo");
+        let mut img = image::open(asset_path("nixos2.png"))
+            .expect("could not open nixos2")
+            .to_rgba8();
+        let mask1 = image::open(asset_path("nixos2-mask1.jpg"))
+            .expect("could not open mask1")
+            .to_rgba8();
+        let mask2 = image::open(asset_path("nixos2-mask2.jpg"))
+            .expect("could not open mask2")
+            .to_rgba8();
+
+        let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
+        let black = Color::new(0, 0, 0);
+
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        let multiply = |a: u8, b: u8| -> u8 { (f64::from(a) * f64::from(b) / 255.0) as u8 };
+
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        for (x, y, pixel) in img.enumerate_pixels_mut() {
+            let mask1_pixel = mask1.get_pixel(x, y);
+            let masked1_pixel = Rgba([
+                multiply(mask1_pixel[0], pixel[0]),
+                multiply(mask1_pixel[1], pixel[1]),
+                multiply(mask1_pixel[2], pixel[2]),
+                pixel[3],
+            ]);
+
+            if black.distance_rgba(&masked1_pixel) < fuzz {
+                *pixel = color1.to_rgba(pixel[3]);
+            }
+
+            let mask2_pixel = mask2.get_pixel(x, y);
+            let masked2_pixel = Rgba([
+                multiply(mask2_pixel[0], pixel[0]),
+                multiply(mask2_pixel[1], pixel[1]),
+                multiply(mask2_pixel[2], pixel[2]),
+                pixel[3],
+            ]);
+
+            if black.distance_rgba(&masked2_pixel) < fuzz {
+                *pixel = color2.to_rgba(pixel[3]);
+            }
+        }
+
+        let dest_h = self
+            .args
+            .image_size
+            .unwrap_or(if self.args.challenge { 380 } else { 300 });
+
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        let dest_w = (f64::from(dest_h) / f64::from(img.height()) * f64::from(img.width())) as u32;
+
+        let src_view =
+            Image::from_vec_u8(img.width(), img.height(), img.into_raw(), PixelType::U8x4)
+                .expect("could not create image view");
+
+        #[allow(clippy::cast_sign_loss)]
+        let mut dest = Image::new(dest_w, dest_h as u32, PixelType::U8x4);
+        Resizer::new()
+            .resize(&src_view, &mut dest, None)
+            .expect("failed to resize image");
+
+        let mut result_buf =
+            std::io::BufWriter::new(std::fs::File::create(&output).expect("could not create file"));
+
+        #[allow(clippy::cast_sign_loss)]
+        PngEncoder::new(&mut result_buf)
+            .write_image(
+                dest.buffer(),
+                dest_w,
+                dest_h as u32,
+                image::ColorType::Rgba8.into(),
+            )
+            .expect("failed to write png for waifu2");
 
         Self::with_backend(&output)
     }

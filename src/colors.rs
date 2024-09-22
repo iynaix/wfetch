@@ -63,20 +63,6 @@ impl Color {
     pub const fn to_rgba(&self, a: u8) -> image::Rgba<u8> {
         image::Rgba([self.0, self.1, self.2, a])
     }
-
-    pub fn imagemagick_replace_args(&self, opaque: &str) -> Vec<String> {
-        [
-            "-fuzz",
-            "10%",
-            "-fill",
-            &self.to_string(),
-            "-opaque",
-            opaque,
-        ]
-        .iter()
-        .map(std::string::ToString::to_string)
-        .collect()
-    }
 }
 
 /// find the most contrasting pair of colors in a list

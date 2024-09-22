@@ -6,7 +6,6 @@
   rustPlatform,
   ascii-image-converter,
   fastfetch,
-  imagemagick,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -39,7 +38,6 @@ rustPlatform.buildRustPackage {
         lib.makeBinPath [
           ascii-image-converter
           fastfetch
-          imagemagick
         ]
       }"
   '';

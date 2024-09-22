@@ -10,7 +10,7 @@
       self,
       nixpkgs,
       devenv,
-      systems,
+      # systems,
       ...
     }@inputs:
     let
@@ -31,7 +31,6 @@
                 cargo-edit
                 ascii-image-converter
                 fastfetch
-                imagemagick
               ];
 
               languages.rust.enable = true;
