@@ -1,7 +1,7 @@
 // implementation adapted from:
 // https://github.com/Canop/terminal-light/blob/main/src/xterm.rs
 
-use crate::{colors::Color, WFetchResult};
+use crate::{colors::Rgba8, WFetchResult};
 
 fn query_xterm(query: &str, timeout_ms: u16) -> WFetchResult<String> {
     use crossterm::terminal::{disable_raw_mode, enable_raw_mode, is_raw_mode_enabled};
@@ -18,7 +18,7 @@ fn query_xterm(query: &str, timeout_ms: u16) -> WFetchResult<String> {
 
 /// Query the bg color, assuming the terminal is in raw mode,
 /// using the "dynamic colors" OSC escape sequence.
-pub fn query_term_color(color: u8) -> WFetchResult<Color> {
+pub fn query_term_color(color: u8) -> WFetchResult<Rgba8> {
     // we use the "dynamic colors" OSC escape sequence. It's sent with a ? for
     // a query and normally answered by the terminal with a color.
     // References:
@@ -40,7 +40,7 @@ pub fn query_term_color(color: u8) -> WFetchResult<Color> {
             let g = u8::from_str_radix(&raw_color[5..7], 16).expect("failed to parse green");
             let b = u8::from_str_radix(&raw_color[10..12], 16).expect("failed to parse blue");
 
-            Ok(Color::new(r, g, b))
+            Ok(image::Rgba([r, g, b, 255]))
         }
         _ => Err("could not get xterm color".into()),
     }

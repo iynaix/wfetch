@@ -86,7 +86,7 @@ pub struct WFetchArgs {
         help = "image size in pixels",
         requires = "image_options"
     )]
-    pub image_size: Option<i32>,
+    pub image_size: Option<u32>,
 
     #[arg(
         long,
