@@ -11,7 +11,17 @@ rustPlatform.buildRustPackage {
   pname = "wfetch";
   inherit version;
 
-  src = ./.;
+  src = lib.fileset.toSource {
+    root = ./.;
+    fileset = lib.fileset.difference ./. (
+      # don't include in build
+      lib.fileset.unions [
+        ./README.md
+        ./LICENSE
+        # ./PKGBUILD
+      ]
+    );
+  };
 
   env.NIX_RELEASE_VERSION = version;
 
