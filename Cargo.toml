@@ -20,6 +20,10 @@ signal-hook = "0.3.17"
 sysinfo = "0.31.4"
 xterm-query = "0.4.1"
 
+[features]
+default = []
+nixos = []
+
 [lints.rust]
 unsafe_code = "forbid"
 

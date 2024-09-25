@@ -276,17 +276,20 @@ impl Logo {
 
         match get_logo_colors() {
             Err(_) => {
-                assert!(
-                    !(self.args.waifu || self.args.waifu2),
-                    "failed to get logo colors"
-                );
+                #[cfg(feature = "nixos")]
+                {
+                    assert!(
+                        !(self.args.waifu || self.args.waifu2),
+                        "failed to get logo colors"
+                    );
 
-                if self.args.hollow {
-                    let hollow = asset_path("nixos_hollow.txt");
-                    return json!({
-                        "source": hollow,
-                        "color": json!({ "1": "blue", "2": "cyan" }),
-                    });
+                    if self.args.hollow {
+                        let hollow = asset_path("nixos_hollow.txt");
+                        return json!({
+                            "source": hollow,
+                            "color": json!({ "1": "blue", "2": "cyan" }),
+                        });
+                    }
                 }
             }
 
@@ -294,9 +297,11 @@ impl Logo {
                 // remove background color to get contrast
                 let (color1, color2) = colors::most_contrasting_pair(&term_colors[1..]);
 
+                #[cfg(feature = "nixos")]
                 if self.args.waifu {
                     return self.waifu1(&color1, &color2);
                 }
+                #[cfg(feature = "nixos")]
                 if self.args.waifu2 {
                     return self.waifu2(&color1, &color2);
                 }
@@ -308,6 +313,7 @@ impl Logo {
                     "2": (*named_colors.get(&color2).unwrap_or(&"cyan")).to_string(),
                 });
 
+                #[cfg(feature = "nixos")]
                 if self.args.hollow {
                     let hollow = asset_path("nixos_hollow.txt");
                     return json!({

@@ -10,16 +10,34 @@ use clap_complete::{generate, Shell};
 )]
 // only one type of logo is allowed
 #[command(group = ArgGroup::new("logo")
-    .args(&["hollow", "waifu", "waifu2", "wallpaper", "wallpaper_ascii"])
+    .args(&[
+        #[cfg(feature = "nixos")]
+        "hollow",
+        #[cfg(feature = "nixos")]
+        "waifu",
+        #[cfg(feature = "nixos")]
+        "waifu2",
+        "wallpaper",
+        "wallpaper_ascii"
+    ])
     .multiple(false))]
-#[command(group = ArgGroup::new("image_options").args(&["wallpaper", "waifu", "waifu2"]))]
+#[command(group = ArgGroup::new("image_options").args(&[
+    "wallpaper",
+    #[cfg(feature = "nixos")]
+    "waifu",
+    #[cfg(feature = "nixos")]
+    "waifu2"
+]))]
 pub struct WFetchArgs {
+    #[cfg(feature = "nixos")]
     #[arg(long, action, help = "show hollow NixOS logo")]
     pub hollow: bool,
 
+    #[cfg(feature = "nixos")]
     #[arg(long, action, help = "show waifu NixOS logo with dynamic colors")]
     pub waifu: bool,
 
+    #[cfg(feature = "nixos")]
     #[arg(long, action, help = "show waifu NixOS logo 2 with dynamic colors")]
     pub waifu2: bool,
 
