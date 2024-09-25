@@ -66,7 +66,7 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
 
     let dst_size = args
         .image_size
-        .unwrap_or(if args.challenge { 370 } else { 290 });
+        .unwrap_or(if args.challenge { 350 } else { 270 });
 
     #[allow(clippy::cast_sign_loss)]
     let mut dest = Image::new(
@@ -173,7 +173,7 @@ impl Logo {
         let side = self
             .args
             .image_size
-            .unwrap_or(if self.args.challenge { 400 } else { 320 });
+            .unwrap_or(if self.args.challenge { 380 } else { 300 });
 
         save_png(src, (side, side), &output);
 
@@ -216,7 +216,7 @@ impl Logo {
         let side = self
             .args
             .image_size
-            .unwrap_or(if self.args.challenge { 370 } else { 290 });
+            .unwrap_or(if self.args.challenge { 350 } else { 270 });
 
         save_png(src, (side, side), &output);
 

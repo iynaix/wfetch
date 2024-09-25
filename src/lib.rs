@@ -114,11 +114,74 @@ impl Fastfetch {
     }
 
     fn os_module(&self) -> serde_json::Value {
-        let nixos = self.preprocess("OS").contains("NixOS");
+        let os = self.preprocess("OS").to_lowercase();
+
+        for (s, key) in &[
+            ("nixos", ""),
+            ("kali", ""),
+            ("rocky", ""),
+            ("mint", "󰣭"),
+            ("alpine", ""),
+            ("archcraft", ""),
+            ("archlabs", ""),
+            ("arcolinux", ""),
+            ("artix", ""),
+            ("centos", ""),
+            ("coreos", ""),
+            ("crystal", ""),
+            ("debian", ""),
+            ("deepin", ""),
+            ("devuan", ""),
+            ("elementary", ""),
+            ("endeavour", ""),
+            ("fedora", ""),
+            ("macos", ""),
+            ("freebsd", ""),
+            ("garuda", ""),
+            ("gentoo", ""),
+            ("hyperbola", ""),
+            ("illumos", ""),
+            ("kubuntu", ""),
+            ("locos", ""),
+            ("mageia", ""),
+            ("mandriva", ""),
+            ("manjaro", ""),
+            ("mxlinux", ""),
+            ("openbsd", ""),
+            ("opensuse", ""),
+            ("parabola", ""),
+            ("parrot", ""),
+            ("puppy", ""),
+            ("qubes", ""),
+            ("redhat", ""),
+            ("sabayon", ""),
+            ("slackware", ""),
+            ("solus", ""),
+            ("tails", ""),
+            ("trisquel", ""),
+            ("ubuntu", ""),
+            ("vanilla", ""),
+            ("void", ""),
+            ("xerolinux", ""),
+            ("xorin", ""),
+            ("guix", ""),
+            ("pop!_os", ""),
+            ("rhel", ""),
+            ("arch", ""),
+            ("alma", ""),
+        ] {
+            if os.contains(s) {
+                return json!({
+                    "type": "os",
+                    "key": format!("{key} OS"),
+                    "format": "{3}"
+                });
+            }
+        }
 
         json!({
             "type": "os",
-            "key": format!("{} OS", if nixos { "" } else { "" }),
+            "key": format!(" OS"),
             "format": "{3}"
         })
     }
@@ -127,21 +190,35 @@ impl Fastfetch {
         let de = self.preprocess("DE").to_lowercase();
         let wm = self.preprocess("WM").to_lowercase();
 
-        let de_value =
-            |key: &str| json!({ "type": "de", "key": format!("{key} DE"), "format": "{2} ({3})" });
-
-        let wm_value =
-            |key: &str| json!({ "type": "wm", "key": format!("{key} WM"), "format": "{2}" });
-
-        if de.contains("gnome") {
-            return de_value("");
-        } else if de.contains("plasma") {
-            return de_value("");
-        } else if wm.contains("hyprland") {
-            return wm_value("");
+        for (s, key) in &[
+            ("hyprland", ""),
+            ("awesome", ""),
+            ("bspwm", ""),
+            ("budgie", ""),
+            ("cinnamon", ""),
+            ("dwm", ""),
+            ("enlightenment", ""),
+            ("fluxbox", ""),
+            ("gnome", ""),
+            ("i3", ""),
+            ("lxde", ""),
+            ("lxqt", ""),
+            ("mate", ""),
+            ("plasma", ""),
+            ("qtile", ""),
+            ("sway", ""),
+            ("xfce", ""),
+            ("xmonad", ""),
+        ] {
+            if de.contains(s) {
+                return json!({ "type": "de", "key": format!("{key} DE"), "format": "{2} ({3})" });
+            }
+            if wm.contains(s) {
+                return json!({ "type": "wm", "key": format!("{key} WM"), "format": "{2}" });
+            }
         }
 
-        wm_value("󰕮")
+        json!({ "type": "wm", "key": format!("󰕮 WM"), "format": "{2}" })
     }
 
     #[allow(clippy::unused_self)]
