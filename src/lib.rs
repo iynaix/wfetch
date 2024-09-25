@@ -1,9 +1,13 @@
 use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
-use execute::{command_args, Execute};
 use logos::Logo;
 use serde_json::{json, Value};
-use std::{collections::HashMap, env, path::PathBuf, process::Stdio};
+use std::{
+    collections::HashMap,
+    env,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 pub mod cli;
 pub mod colors;
@@ -31,7 +35,7 @@ pub trait CommandUtf8 {
 
 impl CommandUtf8 for std::process::Command {
     fn execute_stdout_lines(&mut self) -> Vec<String> {
-        self.stdout(Stdio::piped()).execute_output().map_or_else(
+        self.stdout(Stdio::piped()).output().map_or_else(
             |_| Vec::new(),
             |output| {
                 String::from_utf8(output.stdout)
@@ -91,9 +95,9 @@ pub struct Fastfetch {
 
 impl Fastfetch {
     pub fn new(args: &WFetchArgs) -> Self {
-        let preprocess: HashMap<_, _> = command_args!("fastfetch", "--config")
+        let preprocess: HashMap<_, _> = Command::new("fastfetch")
+            .arg("--config")
             .arg(asset_path("preprocess.json"))
-            .stdout(Stdio::inherit())
             .execute_stdout_lines()
             .iter()
             .map(|l| {

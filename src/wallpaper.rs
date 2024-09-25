@@ -1,8 +1,7 @@
-use execute::Execute;
 use serde::Deserialize;
 use std::{
     path::{Path, PathBuf},
-    process::Stdio,
+    process::{Command, Stdio},
 };
 
 use crate::{full_path, CommandUtf8};
@@ -66,7 +65,7 @@ fn detect_iynaixos() -> Option<String> {
 
 /// detect wallpaper using swwww
 fn detect_swww() -> Option<String> {
-    execute::command!("swww query")
+    Command::new("swww query")
         .execute_stdout_lines()
         .first()
         .map(|wallpaper| {
@@ -122,10 +121,13 @@ fn detect_gsettings() -> Option<String> {
     ]
     .iter()
     .find_map(|(gdir, gkey)| {
-        execute::command_args!("gsettings", "get", gdir, gkey)
+        Command::new("gsettings")
+            .arg("get")
+            .arg(gdir)
+            .arg(gkey)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
-            .execute_output()
+            .output()
             .ok()
             .map(|output| String::from_utf8(output.stdout).unwrap_or_default())
             .map(|wallpaper| {
@@ -141,21 +143,19 @@ fn detect_gsettings() -> Option<String> {
 
 fn detect_plasma() -> Option<String> {
     let plasma_script = r#"print(desktops().map(d => {d.currentConfigGroup=["Wallpaper", "org.kde.image", "General"]; return d.readConfig("Image")}).join("\n"))"#;
-    execute::command_args!(
-        "qdbus",
-        "org.kde.plasmashell",
-        "/PlasmaShell",
-        "org.kde.PlasmaShell.evaluateScript",
-        plasma_script
-    )
-    .execute_stdout_lines()
-    .first()
-    .map(|wallpaper| {
-        wallpaper
-            .strip_prefix("file://")
-            .unwrap_or(wallpaper)
-            .to_string()
-    })
+    Command::new("qdbus")
+        .arg("org.kde.plasmashell")
+        .arg("/PlasmaShell")
+        .arg("org.kde.PlasmaShell.evaluateScript")
+        .arg(plasma_script)
+        .execute_stdout_lines()
+        .first()
+        .map(|wallpaper| {
+            wallpaper
+                .strip_prefix("file://")
+                .unwrap_or(wallpaper)
+                .to_string()
+        })
 }
 
 /// returns full path to the wallpaper

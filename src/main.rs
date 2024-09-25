@@ -1,11 +1,11 @@
 use clap::Parser;
-use execute::Execute;
 use signal_hook::{
     consts::{SIGINT, SIGUSR2},
     iterator::Signals,
 };
 use std::{
     io::{self, Write},
+    process::{Command, Stdio},
     thread,
     time::Duration,
 };
@@ -19,9 +19,13 @@ fn wfetch(args: &WFetchArgs) {
 
     Fastfetch::new(args).create_config(&config_jsonc);
 
-    execute::command_args!("fastfetch", "--hide-cursor", "--config", config_jsonc)
-        .execute_output()
-        .expect("failed to execute fastfetch");
+    Command::new("fastfetch")
+        .arg("--hide-cursor")
+        .arg("--config")
+        .arg(config_jsonc)
+        .stdout(Stdio::inherit())
+        .output()
+        .expect("failed to run fastfetch");
 }
 
 fn main() {

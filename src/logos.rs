@@ -1,8 +1,7 @@
 use std::path::PathBuf;
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 use std::{collections::HashMap, env};
 
-use execute::command_args;
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
 use image::codecs::png::PngEncoder;
@@ -233,25 +232,23 @@ impl Logo {
         let output_dir = img.parent().expect("could not get output dir");
 
         // NOTE: uses patched version of ascii-image-converter to be able to output colored ascii text to file
-        command_args!(
-            "ascii-image-converter",
-            "--color",
-            "--braille",
-            "--threshold",
-            "50"
-        )
-        .arg("--width")
-        .arg(self.args.ascii_size.to_string())
-        // do not output to terminal
-        .arg("--only-save")
-        .arg("--save-txt")
-        // weird api: takes a directory, saves as wfetch-ascii-art.png
-        .arg(output_dir)
-        .arg(&img)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .expect("could not execute ascii-image-converter");
+        Command::new("ascii-image-converter")
+            .arg("--color")
+            .arg("--braille")
+            .arg("--threshold")
+            .arg("50")
+            .arg("--width")
+            .arg(self.args.ascii_size.to_string())
+            // do not output to terminal
+            .arg("--only-save")
+            .arg("--save-txt")
+            // weird api: takes a directory, saves as wfetch-ascii-art.png
+            .arg(output_dir)
+            .arg(&img)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .expect("could not run ascii-image-converter");
 
         output_dir.join("wfetch-ascii-art.txt")
     }
