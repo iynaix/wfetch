@@ -1,6 +1,9 @@
 use execute::Execute;
 use serde::Deserialize;
-use std::{path::Path, process::Stdio};
+use std::{
+    path::{Path, PathBuf},
+    process::Stdio,
+};
 
 use crate::{full_path, CommandUtf8};
 
@@ -168,6 +171,11 @@ pub fn detect(wallpaper_arg: &Option<String>) -> Option<String> {
         detect_plasma(),    // kde
     ]
     .iter()
-    .find(|&wallpaper| wallpaper.is_some())
+    .find(|&wallpaper| {
+        if let Some(wall) = wallpaper {
+            return PathBuf::from(wall).exists();
+        }
+        false
+    })
     .and_then(std::clone::Clone::clone)
 }
