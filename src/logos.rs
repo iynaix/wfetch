@@ -1,5 +1,8 @@
+use std::path::PathBuf;
+use std::process::Stdio;
 use std::{collections::HashMap, env};
 
+use execute::command_args;
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
 use image::codecs::png::PngEncoder;
@@ -16,7 +19,7 @@ use crate::{
 };
 
 /// creates the wallpaper image that fastfetch will display
-pub fn resize_wallpaper(args: &WFetchArgs) -> String {
+pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
     let output = create_output_file("wfetch.png");
 
     // read current wallpaper
@@ -86,7 +89,7 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> String {
     output
 }
 
-fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output: &str) {
+fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output: &PathBuf) {
     let (mut dst_w, mut dst_h) = size;
 
     // resize src to fit within size
@@ -110,13 +113,13 @@ fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output
         .expect("failed to resize image");
 
     let mut result_buf = std::io::BufWriter::new(
-        std::fs::File::create(output).unwrap_or_else(|_| panic!("could not create {output}")),
+        std::fs::File::create(output).unwrap_or_else(|_| panic!("could not create {output:?}")),
     );
 
     #[allow(clippy::cast_sign_loss)]
     PngEncoder::new(&mut result_buf)
         .write_image(dest.buffer(), dst_w, dst_h, image::ColorType::Rgba8.into())
-        .unwrap_or_else(|_| panic!("failed to write png for {output}"));
+        .unwrap_or_else(|_| panic!("failed to write png for {output:?}"));
 }
 
 pub struct Logo {
@@ -174,7 +177,11 @@ impl Logo {
 
         save_png(src, (side, side), &output);
 
-        Self::with_backend(&output)
+        Self::with_backend(
+            output
+                .to_str()
+                .expect("could not convert output path to str"),
+        )
     }
 
     pub fn waifu2(&self, color1: &Rgba8, color2: &Rgba8) -> JsonValue {
@@ -213,16 +220,58 @@ impl Logo {
 
         save_png(src, (side, side), &output);
 
-        Self::with_backend(&output)
+        Self::with_backend(
+            output
+                .to_str()
+                .expect("could not convert output path to str"),
+        )
+    }
+
+    /// creates the wallpaper ascii that fastfetch will display
+    pub fn show_wallpaper_ascii(&self) -> PathBuf {
+        let img = resize_wallpaper(&self.args);
+        let output_dir = img.parent().expect("could not get output dir");
+
+        // NOTE: uses patched version of ascii-image-converter to be able to output colored ascii text to file
+        command_args!(
+            "ascii-image-converter",
+            "--color",
+            "--braille",
+            "--threshold",
+            "50"
+        )
+        .arg("--width")
+        .arg(self.args.ascii_size.to_string())
+        // do not output to terminal
+        .arg("--only-save")
+        .arg("--save-txt")
+        // weird api: takes a directory, saves as wfetch-ascii-art.png
+        .arg(output_dir)
+        .arg(&img)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .expect("could not execute ascii-image-converter");
+
+        output_dir.join("wfetch-ascii-art.txt")
     }
 
     pub fn module(&self) -> JsonValue {
-        // from wallpaper, no need to compute contrasting colors
         if self.args.wallpaper_ascii.is_some() {
-            return json!({ "type": "auto", "source": "-" });
+            let ascii_file = self.show_wallpaper_ascii();
+
+            return json!({
+                "type": "auto",
+                "source": ascii_file.to_str().expect("could not convert ascii file path to str"),
+            });
         }
+
         if self.args.wallpaper.is_some() {
-            return Self::with_backend(&resize_wallpaper(&self.args));
+            return Self::with_backend(
+                resize_wallpaper(&self.args)
+                    .to_str()
+                    .expect("could not convert output path to str"),
+            );
         }
 
         match get_logo_colors() {

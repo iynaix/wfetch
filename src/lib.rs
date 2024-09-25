@@ -1,13 +1,9 @@
 use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use execute::Execute;
-use logos::{resize_wallpaper, Logo};
+use logos::Logo;
 use serde_json::{json, Value};
-use std::{
-    env,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{env, path::PathBuf, process::Stdio};
 
 pub mod cli;
 pub mod colors;
@@ -66,33 +62,11 @@ pub fn asset_path(filename: &str) -> String {
         .to_string()
 }
 
-pub fn create_output_file(filename: &str) -> String {
+pub fn create_output_file(filename: &str) -> PathBuf {
     let output_dir = full_path("/tmp/wfetch");
     std::fs::create_dir_all(&output_dir).expect("failed to create output dir");
 
-    output_dir
-        .join(filename)
-        .to_str()
-        .expect("could not convert output dir to str")
-        .to_string()
-}
-
-/// creates the wallpaper ascii that fastfetch will display
-pub fn show_wallpaper_ascii(args: &WFetchArgs, fastfetch: &mut Command) {
-    let output = resize_wallpaper(args);
-
-    let mut ascii_converter = Command::new("ascii-image-converter");
-    ascii_converter
-        .arg("--color")
-        .arg("--braille")
-        .args(["--threshold", "50"])
-        .arg("--width")
-        .arg(args.ascii_size.to_string())
-        .arg(output); // load from stdin
-
-    ascii_converter
-        .execute_multiple_output(&mut [fastfetch])
-        .expect("failed to show ascii wallpaper");
+    output_dir.join(filename)
 }
 
 pub fn shell_module() -> serde_json::Value {
@@ -178,7 +152,7 @@ fn wm_module() -> serde_json::Value {
 }
 
 #[allow(clippy::similar_names)] // gpu and cpu trips this
-pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
+pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &PathBuf) {
     let nixos = is_nixos();
     let os = os_module(nixos);
     let kernel = json!({ "type": "kernel", "key": " VER", });
@@ -243,7 +217,7 @@ pub fn create_fastfetch_config(args: &WFetchArgs, config_jsonc: &str) {
     });
 
     // write json to file
-    let file = std::fs::File::create(full_path(config_jsonc))
+    let file = std::fs::File::create(config_jsonc)
         .unwrap_or_else(|_| panic!("failed to create json config"));
     serde_json::to_writer(file, &contents)
         .unwrap_or_else(|_| panic!("failed to write json config"));

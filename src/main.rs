@@ -11,27 +11,16 @@ use std::{
 };
 use wfetch::{
     cli::{generate_completions, WFetchArgs},
-    create_fastfetch_config, create_output_file, show_wallpaper_ascii,
+    create_fastfetch_config, create_output_file,
 };
 
 fn wfetch(args: &WFetchArgs) {
     let config_jsonc = create_output_file("wfetch.jsonc");
     create_fastfetch_config(args, &config_jsonc);
 
-    let mut fastfetch =
-        execute::command_args!("fastfetch", "--hide-cursor", "--config", config_jsonc);
-
-    if args.wallpaper_ascii.is_some() {
-        // clear screen
-        print!("\x1B[2J\x1B[1;1H");
-        io::stdout().flush().expect("Failed to flush stdout");
-
-        show_wallpaper_ascii(args, &mut fastfetch);
-    } else {
-        fastfetch
-            .execute_output()
-            .expect("failed to execute fastfetch");
-    }
+    execute::command_args!("fastfetch", "--hide-cursor", "--config", config_jsonc)
+        .execute_output()
+        .expect("failed to execute fastfetch");
 }
 
 fn main() {
