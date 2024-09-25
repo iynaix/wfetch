@@ -11,12 +11,13 @@ use std::{
 };
 use wfetch::{
     cli::{generate_completions, WFetchArgs},
-    create_fastfetch_config, create_output_file,
+    create_output_file, Fastfetch,
 };
 
 fn wfetch(args: &WFetchArgs) {
     let config_jsonc = create_output_file("wfetch.jsonc");
-    create_fastfetch_config(args, &config_jsonc);
+
+    Fastfetch::new(args).create_config(&config_jsonc);
 
     execute::command_args!("fastfetch", "--hide-cursor", "--config", config_jsonc)
         .execute_output()
