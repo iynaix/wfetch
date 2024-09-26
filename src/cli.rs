@@ -30,15 +30,15 @@ use clap_complete::{generate, Shell};
 ]))]
 pub struct WFetchArgs {
     #[cfg(feature = "nixos")]
-    #[arg(long, action, help = "show hollow NixOS logo")]
+    #[arg(long, action, help = "Show hollow NixOS logo")]
     pub hollow: bool,
 
     #[cfg(feature = "nixos")]
-    #[arg(long, action, help = "show waifu NixOS logo with dynamic colors")]
+    #[arg(long, action, help = "Show waifu NixOS logo with dynamic colors")]
     pub waifu: bool,
 
     #[cfg(feature = "nixos")]
-    #[arg(long, action, help = "show waifu NixOS logo 2 with dynamic colors")]
+    #[arg(long, action, help = "Show waifu NixOS logo 2 with dynamic colors")]
     pub waifu2: bool,
 
     #[arg(
@@ -46,20 +46,21 @@ pub struct WFetchArgs {
         num_args = 0..=1,
         value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "show section of wallpaper\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
+        action, help = "Show section of wallpaper\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
     pub wallpaper: Option<String>,
 
     #[arg(
         long,
         num_args = 0..=1,
+        visible_aliases = ["ascii-wallpaper", "ascii"],
         value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "show section of wallpaper in ascii\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
+        action, help = "Show section of wallpaper in ascii\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
     pub wallpaper_ascii: Option<String>,
 
-    #[arg(long, action, help = "show challenge progress")]
+    #[arg(long, action, help = "Show challenge progress")]
     pub challenge: bool,
 
     #[arg(
@@ -67,7 +68,7 @@ pub struct WFetchArgs {
         action,
         value_name = "TIMESTAMP",
         default_value = "1675821503",
-        help = "start of the challenge as a UNIX timestamp in seconds"
+        help = "Start of the challenge as a UNIX timestamp in seconds"
     )]
     pub challenge_timestamp: i32,
 
@@ -76,7 +77,7 @@ pub struct WFetchArgs {
         action,
         value_name = "YEARS",
         default_value = "10",
-        help = "duration of challenge in years"
+        help = "Duration of challenge in years"
     )]
     pub challenge_years: u32,
 
@@ -85,23 +86,23 @@ pub struct WFetchArgs {
         action,
         value_name = "MONTHS",
         default_value = "0",
-        help = "duration of challenge in months"
+        help = "Duration of challenge in months"
     )]
     pub challenge_months: u32,
 
-    #[arg(long, action, help = "type of the challenge, e.g. emacs")]
+    #[arg(long, action, help = "Type of the challenge, e.g. emacs")]
     pub challenge_type: Option<String>,
 
-    #[arg(long, action, help = "listen for SIGUSR2 to refresh output")]
+    #[arg(long, action, visible_aliases=["socket"], help = "Listen for SIGUSR2 to refresh output")]
     pub listen: bool,
 
-    #[arg(long, action, help = "do not show colored keys")]
+    #[arg(long, action, help = "Do not show colored keys")]
     pub no_color_keys: bool,
 
     #[arg(
         long,
         action,
-        help = "image size in pixels",
+        help = "Image size in pixels",
         requires = "image_options"
     )]
     pub image_size: Option<u32>,
@@ -110,7 +111,7 @@ pub struct WFetchArgs {
         long,
         action,
         default_value = "70",
-        help = "ascii size in characters",
+        help = "Ascii size in characters",
         requires = "wallpaper_ascii"
     )]
     pub ascii_size: i32,
@@ -118,7 +119,7 @@ pub struct WFetchArgs {
     #[arg(
         long,
         value_enum,
-        help = "type of shell completion to generate",
+        help = "Type of shell completion to generate",
         hide = true,
         exclusive = true
     )]

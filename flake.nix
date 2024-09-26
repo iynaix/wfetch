@@ -27,7 +27,6 @@
         }:
         let
           ascii-image-converter' = pkgs.ascii-image-converter.overrideAttrs (old: {
-            # fix for https://github.com/TheZoraiz/ascii-image-converter/issues/10
             postPatch = ''
               substituteInPlace aic_package/util.go \
                 --replace-fail "saveAscii := flattenAscii(asciiSet, false, true)" \

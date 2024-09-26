@@ -30,41 +30,41 @@ nix run github:iynaix/wfetch
 
 ```console
 $ wfetch --help
-fetch is an opinionated command-line fetch tool for displaying system information in a pretty way
+wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way
 
 Usage: wfetch [OPTIONS]
 
 Options:
       --hollow
-          show hollow NixOS logo
+          Show hollow NixOS logo
       --waifu
-          show waifu NixOS logo with dynamic colors
+          Show waifu NixOS logo with dynamic colors
       --waifu2
-          show waifu NixOS logo 2 with dynamic colors
+          Show waifu NixOS logo 2 with dynamic colors
       --wallpaper [<WALLPAPER>]
-          show section of wallpaper
+          Show section of wallpaper
           (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
       --wallpaper-ascii [<WALLPAPER>]
-          show section of wallpaper in ascii
-          (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
+          Show section of wallpaper in ascii
+          (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate) [aliases: ascii-wallpaper, ascii]
       --challenge
-          show challenge progress
+          Show challenge progress
       --challenge-timestamp <TIMESTAMP>
-          start of the challenge as a UNIX timestamp in seconds [default: 1675821503]
+          Start of the challenge as a UNIX timestamp in seconds [default: 1675821503]
       --challenge-years <YEARS>
-          duration of challenge in years [default: 10]
+          Duration of challenge in years [default: 10]
       --challenge-months <MONTHS>
-          duration of challenge in months [default: 0]
+          Duration of challenge in months [default: 0]
       --challenge-type <CHALLENGE_TYPE>
-          type of the challenge, e.g. emacs
+          Type of the challenge, e.g. emacs
       --listen
-          listen for SIGUSR2 to refresh output
+          Listen for SIGUSR2 to refresh output [aliases: socket]
       --no-color-keys
-          do not show colored keys
+          Do not show colored keys
       --image-size <IMAGE_SIZE>
-          image size in pixels
+          Image size in pixels
       --ascii-size <ASCII_SIZE>
-          ascii size in characters [default: 70]
+          Ascii size in characters [default: 70]
   -h, --help
           Print help
   -V, --version
