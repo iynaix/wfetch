@@ -272,38 +272,35 @@ impl Fastfetch {
     }
 
     fn gpu_module(&self) -> Vec<serde_json::Value> {
-        // (gpu name, is_discrete)
-        let gpus: Vec<_> = self
+        let (discrete, other): (Vec<_>, Vec<_>) = self
             .preprocess
             .iter()
-            .filter_map(|(k, v)| {
-                if k.starts_with("GPU") {
-                    let info: Vec<_> = v.split("____").collect();
-                    assert!(info.len() == 2, "invalid gpu info: {v}");
-                    return Some((info[0].to_string(), info[1] == "Discrete"));
-                }
-                None
+            .filter_map(|(k, v)| k.starts_with("GPU").then_some(v))
+            .map(|v| {
+                let (gpu, gpu_type) = v.split_once("____").expect("invalid gpu format");
+                (
+                    json!({
+                        "type": "command",
+                        "key": " GPU",
+                        "text": format!("echo {gpu}"),
+                    }),
+                    gpu_type == "Discrete",
+                )
             })
-            .collect();
+            .partition(|(_, is_discrete)| *is_discrete);
 
-        if gpus.len() == 1 {
-            return vec![json!({
-                "type": "command",
-                "key": " GPU",
-                "text": format!("echo {}", gpus[0].0),
-            })];
-        }
+        let ret = if discrete.is_empty() {
+            // return everything except first gpu
+            if other.len() > 1 {
+                other[1..].to_vec()
+            } else {
+                other
+            }
+        } else {
+            discrete
+        };
 
-        gpus.iter()
-            .filter(|(_, is_discrete)| *is_discrete)
-            .map(|(gpu, _)| {
-                json!({
-                    "type": "command",
-                    "key": " GPU",
-                    "text": format!("echo {gpu}"),
-                })
-            })
-            .collect()
+        ret.into_iter().map(|(gpu, _)| gpu).collect()
     }
 
     #[allow(clippy::cast_precision_loss, clippy::cast_possible_wrap)]
