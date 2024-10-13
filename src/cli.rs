@@ -34,7 +34,12 @@ pub struct WFetchArgs {
     pub hollow: bool,
 
     #[cfg(feature = "nixos")]
-    #[arg(long, action, help = "Show waifu NixOS logo with dynamic colors")]
+    #[arg(
+        long,
+        action,
+        alias = "waifu1",
+        help = "Show waifu NixOS logo with dynamic colors"
+    )]
     pub waifu: bool,
 
     #[cfg(feature = "nixos")]
@@ -115,6 +120,14 @@ pub struct WFetchArgs {
         requires = "wallpaper_ascii"
     )]
     pub ascii_size: i32,
+
+    #[arg(
+        long,
+        action,
+        default_value = "1.0",
+        help = "Scale factor for high DPI displays"
+    )]
+    pub scale: f64,
 
     #[arg(
         long,

@@ -17,6 +17,16 @@ use crate::{
     wallpaper::{self, WallInfo},
 };
 
+/// returns new sizes adjusted for the given scale
+fn resize_with_scale(scale: f64, width: u32, height: u32) -> (u32, u32) {
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
+    (
+        (f64::from(width) * scale).floor() as u32,
+        (f64::from(height) * scale).floor() as u32,
+    )
+}
+
 /// creates the wallpaper image that fastfetch will display
 pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
     let output = create_output_file("wfetch.png");
@@ -66,6 +76,8 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
     let dst_size = args
         .image_size
         .unwrap_or(if args.challenge { 350 } else { 270 });
+
+    let (dst_size, _) = resize_with_scale(args.scale, dst_size, dst_size);
 
     #[allow(clippy::cast_sign_loss)]
     let mut dest = Image::new(
@@ -174,7 +186,7 @@ impl Logo {
             .image_size
             .unwrap_or(if self.args.challenge { 380 } else { 300 });
 
-        save_png(src, (side, side), &output);
+        save_png(src, resize_with_scale(self.args.scale, side, side), &output);
 
         Self::with_backend(
             output
@@ -217,7 +229,7 @@ impl Logo {
             .image_size
             .unwrap_or(if self.args.challenge { 350 } else { 270 });
 
-        save_png(src, (side, side), &output);
+        save_png(src, resize_with_scale(self.args.scale, side, side), &output);
 
         Self::with_backend(
             output

@@ -68,15 +68,8 @@ fn detect_swww() -> Option<String> {
     Command::new("swww query")
         .execute_stdout_lines()
         .first()
-        .map(|wallpaper| {
-            wallpaper
-                .rsplit_once("image: ")
-                .unwrap_or_default()
-                .1
-                .trim()
-                .trim_matches('\'')
-                .to_string()
-        })
+        .and_then(|wallpaper| wallpaper.rsplit_once("image: "))
+        .map(|(_, wallpaper)| wallpaper.trim().trim_matches('\'').to_string())
         .filter(|wallpaper| !wallpaper.is_empty() && wallpaper != "STDIN")
 }
 
@@ -84,32 +77,22 @@ fn detect_swww() -> Option<String> {
 fn detect_swaybg() -> Option<String> {
     let sys = sysinfo::System::new_all();
 
-    if let Some(process) = sys.processes_by_exact_name("swaybg".as_ref()).next() {
-        if let Some(wallpaper) = process.cmd().last() {
-            return Some(
-                wallpaper
-                    .clone()
-                    .into_string()
-                    .expect("could not convert wallpaper to string"),
-            );
-        }
-    }
-
-    None
+    let mut processes = sys.processes_by_exact_name("swaybg".as_ref());
+    processes
+        .find_map(|process| process.cmd().last().cloned())
+        .and_then(|wallpaper| wallpaper.into_string().ok())
 }
 
 fn detect_hyprpaper() -> Option<String> {
     std::fs::read_to_string(full_path("~/.config/hypr/hyprpaper.conf"))
-        .ok()
-        .and_then(|conf| {
-            conf.lines()
-                .map(str::trim)
-                .find(|line| line.starts_with("wallpaper"))
-                .and_then(|line| {
-                    line.rsplit_once(',')
-                        .map(|(_, wallpaper)| wallpaper.trim().to_string())
-                })
-        })
+        .ok()?
+        .lines()
+        .find(|line| line.trim().starts_with("wallpaper"))?
+        .rsplit_once(',')?
+        .1
+        .trim()
+        .to_string()
+        .into()
 }
 
 /// detect wallpaper using gsettings (gnome, cinnamon, mate)

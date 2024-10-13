@@ -65,6 +65,8 @@ Options:
           Image size in pixels
       --ascii-size <ASCII_SIZE>
           Ascii size in characters [default: 70]
+      --scale <SCALE>
+          Scale factor for high DPI displays [default: 1.0]
   -h, --help
           Print help
   -V, --version
