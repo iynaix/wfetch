@@ -121,13 +121,8 @@ pub struct WFetchArgs {
     )]
     pub ascii_size: i32,
 
-    #[arg(
-        long,
-        action,
-        default_value = "1.0",
-        help = "Scale factor for high DPI displays"
-    )]
-    pub scale: f64,
+    #[arg(long, action, help = "Scale factor for high DPI displays")]
+    pub scale: Option<f64>,
 
     #[arg(
         long,

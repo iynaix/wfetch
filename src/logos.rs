@@ -1,11 +1,16 @@
-use std::path::PathBuf;
-use std::process::{Command, Stdio};
-use std::{collections::HashMap, env};
+use std::{
+    path::PathBuf,
+    process::{Command, Stdio},
+    {collections::HashMap, env},
+};
 
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
-use image::codecs::png::PngEncoder;
-use image::{ImageBuffer, ImageEncoder, ImageReader, Rgba};
+use image::{
+    codecs::png::PngEncoder,
+    {ImageBuffer, ImageEncoder, ImageReader, Rgba},
+};
+use serde::Deserialize;
 use serde_json::{json, Value as JsonValue};
 
 use crate::colors::get_logo_colors;
@@ -18,7 +23,27 @@ use crate::{
 };
 
 /// returns new sizes adjusted for the given scale
-fn resize_with_scale(scale: f64, width: u32, height: u32) -> (u32, u32) {
+fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) {
+    let scale = scale.unwrap_or_else(|| {
+        #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub struct HyprMonitor {
+            pub scale: f64,
+            pub focused: bool,
+        }
+
+        // no scale arg provided, try getting it from hyprland
+        Command::new("hyprctl")
+            .arg("monitors")
+            .arg("-j")
+            .output()
+            .ok()
+            .and_then(|output| String::from_utf8(output.stdout).ok())
+            .and_then(|stdout| serde_json::from_str::<Vec<HyprMonitor>>(&stdout).ok())
+            .and_then(|monitors| monitors.into_iter().find(|m| m.focused))
+            .map_or(1.0, |monitor| monitor.scale)
+    });
+
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
     (

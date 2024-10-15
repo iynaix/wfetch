@@ -66,7 +66,7 @@ Options:
       --ascii-size <ASCII_SIZE>
           Ascii size in characters [default: 70]
       --scale <SCALE>
-          Scale factor for high DPI displays [default: 1.0]
+          Scale factor for high DPI displays
   -h, --help
           Print help
   -V, --version

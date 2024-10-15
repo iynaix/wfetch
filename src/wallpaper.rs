@@ -65,7 +65,8 @@ fn detect_iynaixos() -> Option<String> {
 
 /// detect wallpaper using swwww
 fn detect_swww() -> Option<String> {
-    Command::new("swww query")
+    Command::new("swww")
+        .arg("query")
         .execute_stdout_lines()
         .first()
         .and_then(|wallpaper| wallpaper.rsplit_once("image: "))
