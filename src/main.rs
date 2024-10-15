@@ -1,10 +1,12 @@
 use clap::Parser;
+use nix::unistd::getpgrp;
 use signal_hook::{
     consts::{SIGINT, SIGUSR2},
     iterator::Signals,
 };
 use std::{
     io::{self, Write},
+    os::unix::process::CommandExt,
     process::{Command, Stdio},
     thread,
     time::Duration,
@@ -19,10 +21,20 @@ fn wfetch(args: &WFetchArgs) {
 
     Fastfetch::new(args).create_config(&config_jsonc);
 
+    /*
+    run fastfetch in the same process group as the terminal using the
+    setsid syscall in order for fastfetch to properly detect the
+    terminal, instead of the wrapper bash rust uses
+
+    NOTE: this still produces a wrong value for terminal when run with
+    `cargo run --bin wfetch`
+    */
+
     Command::new("fastfetch")
         .arg("--hide-cursor")
         .arg("--config")
         .arg(config_jsonc)
+        .process_group(getpgrp().into())
         .stdout(Stdio::inherit())
         .output()
         .expect("failed to run fastfetch");

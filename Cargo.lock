@@ -1504,6 +1504,7 @@ dependencies = [
  "dirs",
  "fast_image_resize",
  "image",
+ "nix",
  "serde",
  "serde_json",
  "signal-hook",

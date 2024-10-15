@@ -401,7 +401,7 @@ impl Fastfetch {
         let terminal = json!({ "type": "terminal", "key": " TER", "format": "{3}" });
         let cpu = json!({ "type": "cpu", "key": " CPU", "format": "{1} ({5})", });
         let memory =
-            json!({ "type": "memory", "key": "󰆼 RAM", "format": "{/1}{-}{/}{/2}{-}{/}{} / {}" });
+            json!({ "type": "memory", "key": " RAM", "format": "{/1}{-}{/}{/2}{-}{/}{} / {}" });
         let color = json!({ "type": "colors", "symbol": "circle", });
 
         let mut modules = vec![
