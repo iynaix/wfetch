@@ -1,10 +1,12 @@
 use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use logos::Logo;
+use nix::unistd::getpgrp;
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     env,
+    os::unix::process::CommandExt,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -95,9 +97,19 @@ pub struct Fastfetch {
 
 impl Fastfetch {
     pub fn new(args: &WFetchArgs) -> Self {
+        /*
+        run fastfetch in the same process group as the terminal using the
+        setsid syscall in order for fastfetch to properly detect the
+        terminal, instead of the wrapper bash rust uses
+
+        NOTE: this still produces a wrong value for terminal when run with
+        `cargo run --bin wfetch`
+        */
+
         let preprocess: HashMap<_, _> = Command::new("fastfetch")
             .arg("--config")
             .arg(asset_path("preprocess.json"))
+            .process_group(getpgrp().into())
             .execute_stdout_lines()
             .iter()
             .map(|l| {
@@ -243,32 +255,39 @@ impl Fastfetch {
         }
 
         let shell = std::env::var("SHELL").unwrap_or_default();
+        let shell = shell
+            .rsplit_once('/')
+            .map_or_else(|| shell.to_string(), |(_, end)| end.to_string());
 
-        if shell.ends_with("fish") {
-            return json!({
-                "type": "command",
-                "key": "󰈺 SH",
-                "text": "echo fish",
-            });
-        }
-
-        if shell.ends_with("zsh") {
-            return json!({
-                "type": "command",
-                "key": " SH",
-                "text": "echo zsh",
-            });
-        }
+        let icon = match shell.as_str() {
+            "fish" => "󰈺",
+            _ => "",
+        };
 
         json!({
             "type": "command",
-            "key": " SH",
-            "text": "echo bash",
+            "key": format!("{icon} SH"),
+            "text": format!("echo {shell}"),
         })
     }
 
     fn logo_module(&self) -> serde_json::Value {
         Logo::new(&self.args, self.preprocess("OS").contains("NixOS")).module()
+    }
+
+    fn terminal_module(&self) -> serde_json::Value {
+        let term = self.preprocess("Terminal");
+        let icon = match term.as_str() {
+            "kitty" => "󰄛",
+            "ghostty" => "󰊠",
+            _ => "",
+        };
+
+        json!({
+           "type": "command",
+           "key": format!("{icon} TER"),
+           "text": format!("echo {term}")
+        })
     }
 
     fn gpu_module(&self) -> Vec<serde_json::Value> {
@@ -398,7 +417,6 @@ impl Fastfetch {
         let uptime = json!({ "type": "uptime", "key": "󰅐 UP", });
         let packages = json!({ "type": "packages", "key": "󰏖 PKG", });
         let display = json!({ "type": "display", "key": "󰍹 RES", "compactType": "scaled" });
-        let terminal = json!({ "type": "terminal", "key": " TER", "format": "{3}" });
         let cpu = json!({ "type": "cpu", "key": " CPU", "format": "{1} ({5})", });
         let memory =
             json!({ "type": "memory", "key": " RAM", "format": "{/1}{-}{/}{/2}{-}{/}{} / {}" });
@@ -419,7 +437,7 @@ impl Fastfetch {
             json!("break"),
             display,
             self.wm_module(),
-            terminal,
+            self.terminal_module(),
             self.shell_module(),
         ]);
 

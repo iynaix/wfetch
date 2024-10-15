@@ -14,6 +14,14 @@
       "type": "gpu",
       "driverSpecific": true,
       "format": "{2}____{6}"
+    },
+    {
+      "type": "terminal",
+      "format": "{3}"
+    },
+    {
+      "type": "shell",
+      "format": "{3}"
     }
   ]
 }
