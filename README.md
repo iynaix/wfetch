@@ -2,7 +2,8 @@
 
 wfetch is an opinionated command-line fetch tool for displaying system information in a pretty way. It is written in Rust and is a wrapper around [fastfetch](https://github.com/fastfetch-cli/fastfetch).
 
-<img src="https://i.imgur.com/qHGMWzW.png" />
+<!-- 110026463_p0.webp -->
+<img src="https://i.imgur.com/D5H2xG6.png" />
 
 ## Installation
 
@@ -76,21 +77,23 @@ Options:
 ## Screenshots
 
 ### (default)
-<img src="https://i.imgur.com/gtbUnjL.png" /><br/>
+<img src="https://i.imgur.com/X0m8dVt.png" /><br/>
 
 ### --hollow
-<img src="https://i.imgur.com/9Fxua7R.png" /><br/>
+<img src="https://i.imgur.com/jtZjItL.png" /><br/>
 
 ### --wallpaper
-<img src="https://i.imgur.com/qHGMWzW.png" />
+<!-- 110026463_p0.webp -->
+<img src="https://i.imgur.com/D5H2xG6.png" />
 
 ### --waifu
-<img src="https://i.imgur.com/QbFz33S.png" />
+<img src="https://i.imgur.com/otI2IL8.png" />
 
 ### --waifu2
-<img src="https://i.imgur.com/1PhJNDU.png" />
+<img src="https://i.imgur.com/FVy3Mwt.png" />
 
 ### --wallpaper-ascii
+<!-- wallhaven-5g67o9.webp -->
 <img src="https://i.imgur.com/4nHd6F5.png" /><br/>
 
 ## Packaging
