@@ -12,13 +12,13 @@ crossterm = "0.28.1"
 csv = "1.3.0"
 dirs = "5.0.1"
 fast_image_resize = { version = "5.0.0", features = ["image", "rayon"] }
-image = "0.25.2"
+image = "0.25.4"
 nix = { version = "0.29.0", features = ["process"] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
+serde = { version = "1.0.213", features = ["derive"] }
+serde_json = "1.0.132"
 signal-hook = "0.3.17"
 sysinfo = "0.32.0"
-xterm-query = "0.4.1"
+xterm-query = "0.5.0"
 
 [features]
 default = ["nixos"]
@@ -36,6 +36,13 @@ nursery = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 option_if_let_else = { level = "allow", priority = 1 }
 unwrap_used = "deny"
+
+# faster image operations in dev
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.fast_image_resize]
+opt-level = 3
 
 [profile.release]
 strip = true
