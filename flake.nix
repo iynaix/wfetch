@@ -48,6 +48,9 @@
                     [
                       cargo-edit
                       fastfetch
+                      pkg-config
+                      glib
+                      gexiv2 # for reading metadata
                     ]
                     ++ [
                       ascii-image-converter'
@@ -69,8 +72,9 @@
               # patched version of ascii-image-converter
               ascii-image-converter = ascii-image-converter';
             };
-            aic = ascii-image-converter';
+            ascii-image-converter = ascii-image-converter';
             default = wfetch;
+            wfetch-iynaixos = wfetch.override { iynaixos = true; };
           };
         };
     };

@@ -1,58 +1,12 @@
-use serde::Deserialize;
 use std::{
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
 };
 
 use crate::{full_path, CommandUtf8};
 
-#[derive(Debug, Default, Deserialize, Clone)]
-pub struct Face {
-    #[serde(rename = "0")]
-    pub xmin: u32,
-    #[serde(rename = "1")]
-    pub xmax: u32,
-    #[serde(rename = "2")]
-    pub ymin: u32,
-    #[serde(rename = "3")]
-    pub ymax: u32,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct WallInfo {
-    pub filename: String,
-    pub width: u32,
-    pub height: u32,
-    #[serde(rename = "1x1")]
-    pub r1x1: String,
-}
-
-/// reads the wallpaper info from wallpapers.csv
-pub fn info(image: &String) -> Option<WallInfo> {
-    let wallpapers_csv = full_path("~/Pictures/Wallpapers/wallpapers.csv");
-    if !wallpapers_csv.exists() {
-        return None;
-    }
-
-    // convert image to path
-    let image = Path::new(image);
-    let fname = image
-        .file_name()
-        .expect("invalid image path")
-        .to_str()
-        .expect("could not convert image path to str");
-
-    let reader = std::io::BufReader::new(
-        std::fs::File::open(wallpapers_csv).expect("could not open wallpapers.csv"),
-    );
-
-    let mut rdr = csv::Reader::from_reader(reader);
-    rdr.deserialize::<WallInfo>()
-        .flatten()
-        .find(|line| line.filename == fname)
-}
-
-/// detect wallpaper using swwww
+#[cfg(feature = "iynaixos")]
+/// detect wallpaper using current-wallpaper file in tmpfs
 fn detect_iynaixos() -> Option<String> {
     std::fs::read_to_string(
         dirs::runtime_dir()
@@ -61,6 +15,29 @@ fn detect_iynaixos() -> Option<String> {
     )
     .ok()
     .filter(|wallpaper| !wallpaper.is_empty())
+}
+
+#[cfg(feature = "iynaixos")]
+/// reads the wallpaper info from image xmp metadata (w, h, x, y)
+pub fn info(image: &String, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
+    use rexiv2::Metadata;
+
+    let meta = Metadata::new_from_path(image).expect("could not init new metadata");
+
+    meta.get_tag_string("Xmp.wallfacer.crop.1x1").map_or_else(
+        |_| fallback,
+        |crop| {
+            let geometry: Vec<_> = crop
+                .split(['+', 'x'])
+                .filter_map(|s| s.parse::<f64>().ok())
+                .collect();
+
+            match geometry.as_slice() {
+                &[w, h, x, y] => (w, h, x, y),
+                _ => fallback,
+            }
+        },
+    )
 }
 
 /// detect wallpaper using swwww
@@ -147,6 +124,7 @@ pub fn detect(wallpaper_arg: &Option<String>) -> Option<String> {
     [
         // wallpaper provided in arguments
         wallpaper_arg.clone().filter(|w| !w.is_empty()),
+        #[cfg(feature = "iynaixos")]
         detect_iynaixos(),
         detect_swww(),
         detect_swaybg(),

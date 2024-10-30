@@ -4,8 +4,12 @@
   installShellFiles,
   makeWrapper,
   rustPlatform,
+  pkg-config,
   ascii-image-converter,
   fastfetch,
+  glib,
+  gexiv2,
+  iynaixos ? false,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -27,10 +31,27 @@ rustPlatform.buildRustPackage {
 
   cargoLock.lockFile = ./Cargo.lock;
 
+  cargoBuildFlags =
+    [
+      "--no-default-features"
+      "--features"
+      "nixos"
+    ]
+    ++ lib.optionals iynaixos [
+      "--features"
+      "iynaixos"
+    ];
+
   # create files for shell autocomplete
   nativeBuildInputs = [
     installShellFiles
     makeWrapper
+    pkg-config
+  ];
+
+  buildInputs = lib.optionals iynaixos [
+    glib
+    gexiv2
   ];
 
   postInstall = ''

@@ -18,8 +18,7 @@ use crate::{
     asset_path,
     cli::WFetchArgs,
     colors::{self, Rgba8, Rgba8Ext, TERMINAL_COLORS},
-    create_output_file,
-    wallpaper::{self, WallInfo},
+    create_output_file, wallpaper,
 };
 
 /// returns new sizes adjusted for the given scale
@@ -62,16 +61,11 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
         std::process::exit(1);
     });
 
-    let wall_info = wallpaper::info(&wall);
-
-    let img = ImageReader::open(wall)
-        .expect("could not open image")
-        .decode()
-        .expect("could not decode image");
-
-    let fallback_crop = {
-        let width = f64::from(img.width());
-        let height = f64::from(img.height());
+    #[cfg_attr(not(feature = "iynaixos"), allow(unused_mut))]
+    let mut fallback_geometry = {
+        let (width, height) =
+            image::image_dimensions(&wall).expect("could not get image dimensions");
+        let (width, height) = (f64::from(width), f64::from(height));
 
         // get basic square crop in the center
         if width > height {
@@ -81,22 +75,15 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
         }
     };
 
-    let (w, h, x, y) = if let Some(WallInfo {
-        r1x1: crop_area, ..
-    }) = &wall_info
+    #[cfg(feature = "iynaixos")]
     {
-        let geometry: Vec<_> = crop_area
-            .split(|c| c == '+' || c == 'x')
-            .filter_map(|s| s.parse::<f64>().ok())
-            .collect();
+        fallback_geometry = wallpaper::info(&wall, fallback_geometry);
+    }
 
-        match geometry.as_slice() {
-            &[w, h, x, y] => (w, h, x, y),
-            _ => fallback_crop,
-        }
-    } else {
-        fallback_crop
-    };
+    let img = ImageReader::open(&wall)
+        .expect("could not open image")
+        .decode()
+        .expect("could not decode image");
 
     let dst_size = args
         .image_size
@@ -110,6 +97,7 @@ pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
         dst_size,
         img.pixel_type().expect("could not get pixel type"),
     );
+    let (w, h, x, y) = fallback_geometry;
     Resizer::new()
         .resize(&img, &mut dest, &ResizeOptions::new().crop(x, y, w, h))
         .expect("failed to resize image");
