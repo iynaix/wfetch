@@ -61,6 +61,8 @@ rustPlatform.buildRustPackage {
       --bash <($out/bin/wfetch --generate bash) \
       --fish <($out/bin/wfetch --generate fish) \
       --zsh <($out/bin/wfetch --generate zsh)
+
+    installManPage target/man/*
   '';
 
   postFixup = ''
