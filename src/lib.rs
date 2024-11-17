@@ -291,35 +291,45 @@ impl Fastfetch {
     }
 
     fn gpu_module(&self) -> Vec<serde_json::Value> {
-        let (discrete, other): (Vec<_>, Vec<_>) = self
+        let gpu_json = |gpu: &str| {
+            json!({
+                "type": "command",
+                "key": " GPU",
+                "text": format!("echo {gpu}"),
+            })
+        };
+
+        let mut discrete = Vec::new();
+        let mut other: Vec<_> = self
             .preprocess
             .iter()
             .filter_map(|(k, v)| k.starts_with("GPU").then_some(v))
-            .map(|v| {
+            .filter_map(|v| {
                 let (gpu, gpu_type) = v.split_once("____").expect("invalid gpu format");
-                (
-                    json!({
-                        "type": "command",
-                        "key": " GPU",
-                        "text": format!("echo {gpu}"),
-                    }),
-                    gpu_type == "Discrete",
-                )
+                if gpu_type == "Discrete" {
+                    discrete.push(gpu_json(gpu));
+                    return None;
+                }
+
+                Some(gpu)
             })
-            .partition(|(_, is_discrete)| *is_discrete);
+            .collect();
 
-        let ret = if discrete.is_empty() {
-            // return everything except first gpu
-            if other.len() > 1 {
-                other[1..].to_vec()
-            } else {
-                other
-            }
-        } else {
-            discrete
-        };
+        if !discrete.is_empty() {
+            return discrete;
+        }
 
-        ret.into_iter().map(|(gpu, _)| gpu).collect()
+        // order of gpus is not deterministic, sort discrete gpus last
+        other.sort_by_key(|gpu| {
+            gpu.contains("RTX") || gpu.contains("GTX") || gpu.contains("Radeon")
+        });
+
+        // return everything except first gpu
+        other
+            .iter()
+            .skip((other.len() > 1).into())
+            .map(|gpu| gpu_json(gpu))
+            .collect()
     }
 
     #[allow(clippy::cast_precision_loss, clippy::cast_possible_wrap)]
