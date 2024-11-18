@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{generate, Shell};
 
@@ -51,9 +53,11 @@ pub struct WFetchArgs {
         num_args = 0..=1,
         value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "Show section of wallpaper\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
+        action,
+        help = "Show section of wallpaper",
+        long_help = "Show section of wallpaper, use \"-\" for stdin\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
-    pub wallpaper: Option<String>,
+    pub wallpaper: Option<PathBuf>,
 
     #[arg(
         long,
@@ -61,9 +65,11 @@ pub struct WFetchArgs {
         visible_aliases = ["ascii-wallpaper", "ascii"],
         value_name = "WALLPAPER",
         default_missing_value = "",
-        action, help = "Show section of wallpaper in ascii\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
+        action,
+        help = "Show section of wallpaper in ascii",
+        long_help = "Show section of wallpaper in ascii, use \"-\" for stdin\n(supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)",
     )]
-    pub wallpaper_ascii: Option<String>,
+    pub wallpaper_ascii: Option<PathBuf>,
 
     #[arg(long, action, help = "Show challenge progress")]
     pub challenge: bool,

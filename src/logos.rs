@@ -1,15 +1,14 @@
 use std::{
+    collections::HashMap,
+    env,
+    io::Read,
     path::PathBuf,
     process::{Command, Stdio},
-    {collections::HashMap, env},
 };
 
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
-use image::{
-    codecs::png::PngEncoder,
-    {ImageBuffer, ImageEncoder, ImageReader, Rgba},
-};
+use image::{codecs::png::PngEncoder, ImageBuffer, ImageEncoder, ImageReader, Rgba};
 use serde::Deserialize;
 use serde_json::{json, Value as JsonValue};
 
@@ -51,15 +50,52 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) 
     )
 }
 
+pub fn image_from_arg(arg: &Option<PathBuf>) -> Option<String> {
+    if *arg == Some(PathBuf::from("-")) {
+        let mut buf = Vec::new();
+        std::io::stdin()
+            .read_to_end(&mut buf)
+            .expect("unable to read stdin");
+
+        // valid image, write stdin to a file
+        if let Ok(format) = image::guess_format(&buf) {
+            // need to write the extension or Image has problems guessing the format later
+            let ext = format.extensions_str()[0];
+            let output = create_output_file(&format!("wfetch_stdin.{ext}"));
+            std::fs::write(&output, &buf).expect("could not write stdin to file");
+            return Some(output.to_string_lossy().to_string());
+        }
+
+        return String::from_utf8(buf).ok().and_then(|s| {
+            let full_path = std::fs::canonicalize(s.trim())
+                .map(|p| p.to_string_lossy().to_string())
+                .ok();
+
+            wallpaper::detect(&full_path)
+        });
+    }
+
+    wallpaper::detect(arg)
+}
+
 /// creates the wallpaper image that fastfetch will display
-pub fn resize_wallpaper(args: &WFetchArgs) -> PathBuf {
+pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<PathBuf>) -> PathBuf {
     let output = create_output_file("wfetch.png");
 
-    // read current wallpaper
-    let wall = wallpaper::detect(&args.wallpaper).unwrap_or_else(|| {
+    let img = image_from_arg(image_arg).unwrap_or_else(|| {
         eprintln!("Error: could not detect wallpaper!");
         std::process::exit(1);
     });
+
+    let wall = wallpaper::detect(&Some(img)).unwrap_or_else(|| {
+        eprintln!("Error: could not detect wallpaper!");
+        std::process::exit(1);
+    });
+
+    ImageReader::open(&wall)
+        .expect("could not open image")
+        .decode()
+        .expect("could not decode image");
 
     #[cfg_attr(not(feature = "iynaixos"), allow(unused_mut))]
     let mut fallback_geometry = {
@@ -252,8 +288,8 @@ impl Logo {
     }
 
     /// creates the wallpaper ascii that fastfetch will display
-    pub fn show_wallpaper_ascii(&self) -> PathBuf {
-        let img = resize_wallpaper(&self.args);
+    pub fn show_wallpaper_ascii(&self, image_arg: &Option<PathBuf>) -> PathBuf {
+        let img = resize_wallpaper(&self.args, image_arg);
         let output_dir = img.parent().expect("could not get output dir");
 
         // NOTE: uses patched version of ascii-image-converter to be able to output colored ascii text to file
@@ -280,8 +316,7 @@ impl Logo {
 
     pub fn module(&self) -> JsonValue {
         if self.args.wallpaper_ascii.is_some() {
-            let ascii_file = self.show_wallpaper_ascii();
-
+            let ascii_file = self.show_wallpaper_ascii(&self.args.wallpaper_ascii);
             return json!({
                 "type": "auto",
                 "source": ascii_file.to_str().expect("could not convert ascii file path to str"),
@@ -290,7 +325,7 @@ impl Logo {
 
         if self.args.wallpaper.is_some() {
             return Self::with_backend(
-                resize_wallpaper(&self.args)
+                resize_wallpaper(&self.args, &self.args.wallpaper)
                     .to_str()
                     .expect("could not convert output path to str"),
             );

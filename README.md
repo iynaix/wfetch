@@ -38,38 +38,66 @@ Usage: wfetch [OPTIONS]
 Options:
       --hollow
           Show hollow NixOS logo
+
       --waifu
           Show waifu NixOS logo with dynamic colors
+
       --waifu2
           Show waifu NixOS logo 2 with dynamic colors
+
       --wallpaper [<WALLPAPER>]
-          Show section of wallpaper
+          Show section of wallpaper, use "-" for stdin
           (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
+
       --wallpaper-ascii [<WALLPAPER>]
-          Show section of wallpaper in ascii
-          (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate) [aliases: ascii-wallpaper, ascii]
+          Show section of wallpaper in ascii, use "-" for stdin
+          (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
+
+          [aliases: ascii-wallpaper, ascii]
+
       --challenge
           Show challenge progress
+
       --challenge-timestamp <TIMESTAMP>
-          Start of the challenge as a UNIX timestamp in seconds [default: 1675821503]
+          Start of the challenge as a UNIX timestamp in seconds
+
+          [default: 1675821503]
+
       --challenge-years <YEARS>
-          Duration of challenge in years [default: 10]
+          Duration of challenge in years
+
+          [default: 10]
+
       --challenge-months <MONTHS>
-          Duration of challenge in months [default: 0]
+          Duration of challenge in months
+
+          [default: 0]
+
       --challenge-type <CHALLENGE_TYPE>
           Type of the challenge, e.g. emacs
+
       --listen
-          Listen for SIGUSR2 to refresh output [aliases: socket]
+          Listen for SIGUSR2 to refresh output
+
+          [aliases: socket]
+
       --no-color-keys
           Do not show colored keys
+
       --image-size <IMAGE_SIZE>
           Image size in pixels
+
       --ascii-size <ASCII_SIZE>
-          Ascii size in characters [default: 70]
+          Ascii size in characters
+
+          [default: 70]
+
       --scale <SCALE>
           Scale factor for high DPI displays
+
   -h, --help
-          Print help
+          Print help (see a summary with '-h')
+
   -V, --version
           Print version
 ```

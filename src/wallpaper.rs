@@ -1,5 +1,5 @@
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -120,10 +120,15 @@ fn detect_plasma() -> Option<String> {
 }
 
 /// returns full path to the wallpaper
-pub fn detect(wallpaper_arg: &Option<String>) -> Option<String> {
+pub fn detect<P>(wallpaper_arg: &Option<P>) -> Option<String>
+where
+    P: AsRef<Path>,
+{
     [
         // wallpaper provided in arguments
-        wallpaper_arg.clone().filter(|w| !w.is_empty()),
+        wallpaper_arg
+            .as_ref()
+            .and_then(|s| s.as_ref().to_str().map(std::string::ToString::to_string)),
         #[cfg(feature = "iynaixos")]
         detect_iynaixos(),
         detect_swww(),
