@@ -50,8 +50,8 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) 
     )
 }
 
-pub fn image_from_arg(arg: &Option<PathBuf>) -> Option<String> {
-    if *arg == Some(PathBuf::from("-")) {
+pub fn image_from_arg(arg: &Option<String>) -> Option<String> {
+    if *arg == Some("-".to_string()) {
         let mut buf = Vec::new();
         std::io::stdin()
             .read_to_end(&mut buf)
@@ -79,7 +79,7 @@ pub fn image_from_arg(arg: &Option<PathBuf>) -> Option<String> {
 }
 
 /// creates the wallpaper image that fastfetch will display
-pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<PathBuf>) -> PathBuf {
+pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<String>) -> PathBuf {
     let output = create_output_file("wfetch.png");
 
     let img = image_from_arg(image_arg).unwrap_or_else(|| {
@@ -288,7 +288,7 @@ impl Logo {
     }
 
     /// creates the wallpaper ascii that fastfetch will display
-    pub fn show_wallpaper_ascii(&self, image_arg: &Option<PathBuf>) -> PathBuf {
+    pub fn show_wallpaper_ascii(&self, image_arg: &Option<String>) -> PathBuf {
         let img = resize_wallpaper(&self.args, image_arg);
         let output_dir = img.parent().expect("could not get output dir");
 
