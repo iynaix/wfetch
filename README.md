@@ -122,7 +122,7 @@ Options:
 
 ### --wallpaper-ascii
 <!-- wallhaven-5g67o9.webp -->
-<img src="https://i.imgur.com/4nHd6F5.png" /><br/>
+<img src="https://i.imgur.com/wzX9xUQ.png" /><br/>
 
 ## Packaging
 
