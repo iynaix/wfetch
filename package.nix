@@ -31,16 +31,8 @@ rustPlatform.buildRustPackage {
 
   cargoLock.lockFile = ./Cargo.lock;
 
-  cargoBuildFlags =
-    [
-      "--no-default-features"
-      "--features"
-      "nixos"
-    ]
-    ++ lib.optionals iynaixos [
-      "--features"
-      "iynaixos"
-    ];
+  buildNoDefaultFeatures = true;
+  buildFeatures = [ "nixos" ] ++ lib.optionals iynaixos [ "iynaixos" ];
 
   # create files for shell autocomplete
   nativeBuildInputs = [
