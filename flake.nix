@@ -7,24 +7,18 @@
 
   outputs =
     inputs@{
+      devenv,
       flake-parts,
       nixpkgs,
       self,
       ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ inputs.devenv.flakeModule ];
-      systems = nixpkgs.lib.systems.flakeExposed;
+      imports = [ devenv.flakeModule ];
+      systems = import inputs.systems;
 
       perSystem =
-        {
-          # config,
-          # self',
-          # inputs',
-          pkgs,
-          # system,
-          ...
-        }:
+        { pkgs, ... }:
         let
           ascii-image-converter' = pkgs.ascii-image-converter.overrideAttrs (old: {
             postPatch = ''
@@ -36,7 +30,7 @@
         in
         {
           devShells = {
-            default = inputs.devenv.lib.mkShell {
+            default = devenv.lib.mkShell {
               inherit inputs pkgs;
               modules = [
                 {
@@ -77,4 +71,9 @@
           };
         };
     };
+
+  nixConfig = {
+    extra-substituters = [ "https://wfetch.cachix.org" ];
+    extra-trusted-public-keys = [ "wfetch.cachix.org-1:lFMD3l0uT/M4+WwqUXpmPAm2kvEH5xFGeIld1av0kus=" ];
+  };
 }

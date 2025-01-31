@@ -7,23 +7,34 @@ wfetch is an opinionated command-line fetch tool for displaying system informati
 
 ## Installation
 
+Add wfetch to your `inputs` in your `flake.nix`:
 ```nix
 {
-  inputs.wfetch = {
-    url = "github:iynaix/wfetch";
-    inputs.nixpkgs.follows = "nixpkgs"; # override this repo's nixpkgs snapshot
+  inputs.wfetch.url = "github:iynaix/wfetch";
+}
+```
+
+A [wfetch cachix](https://wfetch.cachix.org) is also available, providing prebuilt binaries. To use it, add the following to your configuration:
+```nix
+{
+  nix.settings = {
+    substituters = ["https://wfetch.cachix.org"];
+    trusted-public-keys = ["wfetch.cachix.org-1:lFMD3l0uT/M4+WwqUXpmPAm2kvEH5xFGeIld1av0kus="];
   };
 }
 ```
 
+> [!Warning]
+> Overriding the `wfetch` input using a `inputs.nixpkgs.follows` invalidates the cache and will cause the package to be rebuilt.
+
 Then, include it in your `environment.systemPackages` or `home.packages` by referencing the input:
-```
+```nix
 inputs.wfetch.packages.${pkgs.system}.default
 ```
 
 Alternatively, it can also be run directly:
 
-```
+```sh
 nix run github:iynaix/wfetch
 ```
 
