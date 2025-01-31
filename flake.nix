@@ -74,7 +74,6 @@
             };
             ascii-image-converter = ascii-image-converter';
             default = wfetch;
-            wfetch-iynaixos = wfetch.override { iynaixos = true; };
           };
         };
     };
