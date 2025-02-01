@@ -71,9 +71,4 @@
           };
         };
     };
-
-  nixConfig = {
-    extra-substituters = [ "https://wfetch.cachix.org" ];
-    extra-trusted-public-keys = [ "wfetch.cachix.org-1:lFMD3l0uT/M4+WwqUXpmPAm2kvEH5xFGeIld1av0kus=" ];
-  };
 }
