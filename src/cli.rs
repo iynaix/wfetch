@@ -59,6 +59,13 @@ pub struct WFetchArgs {
 
     #[arg(
         long,
+        help = "Specify square area of the wallpaper to display in the format WxH+X+Y",
+        value_name = "CROP_AREA"
+    )]
+    pub crop: Option<String>,
+
+    #[arg(
+        long,
         num_args = 0..=1,
         visible_aliases = ["ascii-wallpaper", "ascii"],
         value_name = "WALLPAPER",

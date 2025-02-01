@@ -60,6 +60,9 @@ Options:
           Show section of wallpaper, use "-" for stdin
           (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)
 
+      --crop <CROP_AREA>
+          Specify square area of the wallpaper to display in the format WxH+X+Y
+
       --wallpaper-ascii [<WALLPAPER>]
           Show section of wallpaper in ascii, use "-" for stdin
           (supported backends: swww, swaybg, hyprpaper, gnome, cinnamon, mate)

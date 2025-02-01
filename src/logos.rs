@@ -12,13 +12,13 @@ use image::{codecs::png::PngEncoder, ImageBuffer, ImageEncoder, ImageReader, Rgb
 use serde::Deserialize;
 use serde_json::{json, Value as JsonValue};
 
-use crate::colors::get_logo_colors;
 use crate::{
     asset_path,
     cli::WFetchArgs,
     colors::{self, Rgba8, Rgba8Ext, TERMINAL_COLORS},
     create_output_file, wallpaper,
 };
+use crate::{colors::get_logo_colors, wallpaper::geom_from_str};
 
 const NIX_COLOR1: [u8; 4] = [0x7e, 0xba, 0xe4, 255];
 const NIX_COLOR2: [u8; 4] = [0x52, 0x77, 0xc3, 255];
@@ -118,6 +118,15 @@ pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<String>) -> PathBu
     {
         fallback_geometry = wallpaper::info(&wall, fallback_geometry);
     }
+
+    // use the crop argument if provided
+    if let Some(crop) = args.crop.as_ref() {
+        fallback_geometry = geom_from_str(crop).unwrap_or(fallback_geometry);
+    }
+
+    // force the crop to be square
+    let (w, h, x, y) = fallback_geometry;
+    fallback_geometry = (w.min(h), w.min(h), x, y);
 
     let img = ImageReader::open(&wall)
         .expect("could not open image")

@@ -17,6 +17,18 @@ fn detect_iynaixos() -> Option<String> {
     .filter(|wallpaper| !wallpaper.is_empty())
 }
 
+pub fn geom_from_str(crop: &str) -> Option<(f64, f64, f64, f64)> {
+    let geometry: Vec<_> = crop
+        .split(['+', 'x'])
+        .filter_map(|s| s.parse::<f64>().ok())
+        .collect();
+
+    match geometry.as_slice() {
+        &[w, h, x, y] => Some((w, h, x, y)),
+        _ => None,
+    }
+}
+
 #[cfg(feature = "iynaixos")]
 /// reads the wallpaper info from image xmp metadata (w, h, x, y)
 pub fn info(image: &String, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
@@ -24,20 +36,8 @@ pub fn info(image: &String, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f
 
     let meta = Metadata::new_from_path(image).expect("could not init new metadata");
 
-    meta.get_tag_string("Xmp.wallfacer.crop.1x1").map_or_else(
-        |_| fallback,
-        |crop| {
-            let geometry: Vec<_> = crop
-                .split(['+', 'x'])
-                .filter_map(|s| s.parse::<f64>().ok())
-                .collect();
-
-            match geometry.as_slice() {
-                &[w, h, x, y] => (w, h, x, y),
-                _ => fallback,
-            }
-        },
-    )
+    meta.get_tag_string("Xmp.wallfacer.crop.1x1")
+        .map_or_else(|_| fallback, |crop| geom_from_str(crop).unwrap_or(fallback))
 }
 
 /// detect wallpaper using swwww
