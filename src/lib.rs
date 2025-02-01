@@ -275,7 +275,7 @@ impl Fastfetch {
         Logo::new(
             &self.args,
             self.preprocess("OS").contains("NixOS"),
-            self.preprocess("Terminal").to_lowercase().contains("tmux"),
+            env::var("TMUX").is_ok(),
         )
         .module()
     }
