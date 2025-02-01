@@ -272,7 +272,12 @@ impl Fastfetch {
     }
 
     fn logo_module(&self) -> serde_json::Value {
-        Logo::new(&self.args, self.preprocess("OS").contains("NixOS")).module()
+        Logo::new(
+            &self.args,
+            self.preprocess("OS").contains("NixOS"),
+            self.preprocess("Terminal").to_lowercase().contains("tmux"),
+        )
+        .module()
     }
 
     fn terminal_module(&self) -> serde_json::Value {

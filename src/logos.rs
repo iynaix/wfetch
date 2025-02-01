@@ -20,6 +20,9 @@ use crate::{
     create_output_file, wallpaper,
 };
 
+const NIX_COLOR1: [u8; 4] = [0x7e, 0xba, 0xe4, 255];
+const NIX_COLOR2: [u8; 4] = [0x52, 0x77, 0xc3, 255];
+
 /// returns new sizes adjusted for the given scale
 fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) {
     let scale = scale.unwrap_or_else(|| {
@@ -185,20 +188,29 @@ fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output
 pub struct Logo {
     args: WFetchArgs,
     nixos: bool,
+    tmux: bool,
 }
 
 impl Logo {
-    pub fn new(args: &WFetchArgs, nixos: bool) -> Self {
+    pub fn new(args: &WFetchArgs, nixos: bool, tmux: bool) -> Self {
         Self {
             args: args.clone(),
             nixos,
+            tmux,
         }
     }
 
-    fn with_backend(source: &str) -> JsonValue {
+    fn with_backend(&self, source: &str) -> JsonValue {
         let logo_backend = match env::var("KONSOLE_VERSION") {
             Ok(_) => "iterm",
-            Err(_) => "kitty-direct",
+            // kitty direct doesnt work in tmux
+            Err(_) => {
+                if self.tmux {
+                    "kitty-icat"
+                } else {
+                    "kitty-direct"
+                }
+            }
         };
 
         json!({
@@ -211,8 +223,8 @@ impl Logo {
     pub fn waifu1(&self, color1: &Rgba8, color2: &Rgba8) -> JsonValue {
         let output = create_output_file("wfetch.png");
 
-        let replace1 = Rgba([0x52, 0x78, 0xc3, 255]);
-        let replace2 = Rgba([0x7f, 0xba, 0xe4, 255]);
+        let replace1 = Rgba8::from(NIX_COLOR1);
+        let replace2 = Rgba8::from(NIX_COLOR2);
 
         let mut src = ImageReader::open(asset_path("nixos1.png"))
             .expect("could not open nixos1.png")
@@ -237,7 +249,7 @@ impl Logo {
 
         save_png(src, resize_with_scale(self.args.scale, side, side), &output);
 
-        Self::with_backend(
+        self.with_backend(
             output
                 .to_str()
                 .expect("could not convert output path to str"),
@@ -280,7 +292,7 @@ impl Logo {
 
         save_png(src, resize_with_scale(self.args.scale, side, side), &output);
 
-        Self::with_backend(
+        self.with_backend(
             output
                 .to_str()
                 .expect("could not convert output path to str"),
@@ -314,6 +326,52 @@ impl Logo {
         output_dir.join("wfetch-ascii-art.txt")
     }
 
+    pub fn waifu1_default(&self) -> JsonValue {
+        self.waifu1(&Rgba8::from(NIX_COLOR1), &Rgba8::from(NIX_COLOR2))
+    }
+
+    pub fn waifu2_default(&self) -> JsonValue {
+        self.waifu2(&Rgba8::from(NIX_COLOR1), &Rgba8::from(NIX_COLOR2))
+    }
+
+    pub fn hollow_default(&self) -> JsonValue {
+        let hollow = asset_path("nixos_hollow.txt");
+        json!({
+            "source": hollow,
+            "color": json!({ "1": "blue", "2": "cyan" }),
+        })
+    }
+
+    pub fn filled_default(&self) -> JsonValue {
+        json!({
+            "source": "nixos",
+            "color": json!({ "1": "blue", "2": "cyan"}),
+        })
+    }
+
+    pub fn module_for_tmux(&self) -> JsonValue {
+        #[cfg(feature = "nixos")]
+        if self.args.waifu {
+            return self.waifu1_default();
+        }
+        #[cfg(feature = "nixos")]
+        if self.args.waifu2 {
+            return self.waifu2_default();
+        }
+
+        #[cfg(feature = "nixos")]
+        if self.args.hollow {
+            return self.hollow_default();
+        }
+
+        if self.nixos {
+            return self.filled_default();
+        }
+
+        // use fastfetch default
+        json!({ "source": null })
+    }
+
     pub fn module(&self) -> JsonValue {
         if self.args.wallpaper_ascii.is_some() {
             let ascii_file = self.show_wallpaper_ascii(&self.args.wallpaper_ascii);
@@ -324,28 +382,36 @@ impl Logo {
         }
 
         if self.args.wallpaper.is_some() {
-            return Self::with_backend(
+            return self.with_backend(
                 resize_wallpaper(&self.args, &self.args.wallpaper)
                     .to_str()
                     .expect("could not convert output path to str"),
             );
         }
 
+        // handle tmux separately as the raw xterm sequences breaks rendering and text input
+        if self.tmux {
+            return self.module_for_tmux();
+        }
+
         match get_logo_colors() {
             Err(_) => {
                 #[cfg(feature = "nixos")]
                 {
-                    assert!(
-                        !(self.args.waifu || self.args.waifu2),
-                        "failed to get logo colors"
-                    );
+                    if self.args.waifu {
+                        return self.waifu1_default();
+                    }
+
+                    if self.args.waifu2 {
+                        return self.waifu2_default();
+                    }
 
                     if self.args.hollow {
-                        let hollow = asset_path("nixos_hollow.txt");
-                        return json!({
-                            "source": hollow,
-                            "color": json!({ "1": "blue", "2": "cyan" }),
-                        });
+                        return self.hollow_default();
+                    }
+
+                    if self.nixos {
+                        return self.filled_default();
                     }
                 }
             }
