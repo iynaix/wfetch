@@ -36,8 +36,10 @@ pub fn info(image: &String, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f
 
     let meta = Metadata::new_from_path(image).expect("could not init new metadata");
 
-    meta.get_tag_string("Xmp.wallfacer.crop.1x1")
-        .map_or_else(|_| fallback, |crop| geom_from_str(crop).unwrap_or(fallback))
+    meta.get_tag_string("Xmp.wallfacer.crop.1x1").map_or_else(
+        |_| fallback,
+        |crop| geom_from_str(&crop).unwrap_or(fallback),
+    )
 }
 
 /// detect wallpaper using swwww
