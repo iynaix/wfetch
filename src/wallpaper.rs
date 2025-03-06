@@ -31,7 +31,7 @@ pub fn geom_from_str(crop: &str) -> Option<(f64, f64, f64, f64)> {
 
 #[cfg(feature = "iynaixos")]
 /// reads the wallpaper info from image xmp metadata (w, h, x, y)
-pub fn info(image: &String, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
+pub fn info(image: &str, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
     use rexiv2::Metadata;
 
     let meta = Metadata::new_from_path(image).expect("could not init new metadata");

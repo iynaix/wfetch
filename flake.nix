@@ -2,19 +2,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
-    devenv.url = "github:cachix/devenv";
   };
 
   outputs =
     inputs@{
-      devenv,
       flake-parts,
       nixpkgs,
       self,
       ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ devenv.flakeModule ];
       systems = import inputs.systems;
 
       perSystem =
@@ -30,28 +27,30 @@
         in
         {
           devShells = {
-            default = devenv.lib.mkShell {
-              inherit inputs pkgs;
-              modules = [
-                {
-                  # https://devenv.sh/reference/options/
-                  dotenv.disableHint = true;
+            default = pkgs.mkShell {
+              packages = with pkgs; [
+                cargo-edit
+                fastfetch
+                ascii-image-converter'
+              ];
 
-                  packages =
-                    with pkgs;
-                    [
-                      cargo-edit
-                      fastfetch
-                      pkg-config
-                      glib
-                      gexiv2 # for reading metadata
-                    ]
-                    ++ [
-                      ascii-image-converter'
-                    ];
+              env = {
+                # Required by rust-analyzer
+                RUST_SRC_PATH = "${pkgs.rustPlatform.rustLibSrc}";
+              };
 
-                  languages.rust.enable = true;
-                }
+              nativeBuildInputs = with pkgs; [
+                cargo
+                rustc
+                rust-analyzer
+                rustfmt
+                clippy
+                pkg-config
+              ];
+
+              buildInputs = with pkgs; [
+                glib
+                gexiv2 # for reading metadata
               ];
             };
           };

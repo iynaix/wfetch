@@ -75,7 +75,7 @@ pub fn create_output_file(filename: &str) -> PathBuf {
     output_dir.join(filename)
 }
 
-fn term_color(color: i32, text: &String, bold: bool) -> String {
+fn term_color(color: i32, text: &str, bold: bool) -> String {
     let bold_format = if bold { "1;" } else { "" };
     format!("\u{1b}[{bold_format}{}m{text}\u{1b}[0m", 30 + color)
 }
