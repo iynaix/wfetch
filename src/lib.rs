@@ -275,6 +275,7 @@ impl Fastfetch {
         Logo::new(
             &self.args,
             self.preprocess("OS").contains("NixOS"),
+            self.preprocess("Terminal").as_str(),
             env::var("TMUX").is_ok(),
         )
         .module()

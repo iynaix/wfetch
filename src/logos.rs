@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    env,
     io::Read,
     path::PathBuf,
     process::{Command, Stdio},
@@ -24,8 +23,8 @@ const NIX_COLOR1: [u8; 4] = [0x7e, 0xba, 0xe4, 255];
 const NIX_COLOR2: [u8; 4] = [0x52, 0x77, 0xc3, 255];
 
 /// returns new sizes adjusted for the given scale
-fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) {
-    let scale = scale.unwrap_or_else(|| {
+fn resize_with_scale(scale: Option<f64>, width: u32, height: u32, term: &str) -> (u32, u32) {
+    let mut scale = scale.unwrap_or_else(|| {
         #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
         #[serde(rename_all = "camelCase")]
         pub struct HyprMonitor {
@@ -44,6 +43,10 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32) -> (u32, u32) 
             .and_then(|monitors| monitors.into_iter().find(|m| m.focused))
             .map_or(1.0, |monitor| monitor.scale)
     });
+
+    if term == "ghostty" {
+        scale = scale.ceil();
+    }
 
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
@@ -82,7 +85,7 @@ pub fn image_from_arg(arg: &Option<String>) -> Option<String> {
 }
 
 /// creates the wallpaper image that fastfetch will display
-pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<String>) -> PathBuf {
+pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String>) -> PathBuf {
     let output = create_output_file("wfetch.png");
 
     let img = image_from_arg(image_arg).unwrap_or_else(|| {
@@ -137,7 +140,7 @@ pub fn resize_wallpaper(args: &WFetchArgs, image_arg: &Option<String>) -> PathBu
         .image_size
         .unwrap_or(if args.challenge { 350 } else { 270 });
 
-    let (dst_size, _) = resize_with_scale(args.scale, dst_size, dst_size);
+    let (dst_size, _) = resize_with_scale(args.scale, dst_size, dst_size, term);
 
     #[allow(clippy::cast_sign_loss)]
     let mut dest = Image::new(
@@ -197,29 +200,27 @@ fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output
 pub struct Logo {
     args: WFetchArgs,
     nixos: bool,
+    term: String,
     tmux: bool,
 }
 
 impl Logo {
-    pub fn new(args: &WFetchArgs, nixos: bool, tmux: bool) -> Self {
+    pub fn new(args: &WFetchArgs, nixos: bool, term: &str, tmux: bool) -> Self {
         Self {
             args: args.clone(),
             nixos,
+            term: term.to_string(),
             tmux,
         }
     }
 
     fn with_backend(&self, source: &str) -> JsonValue {
-        let logo_backend = match env::var("KONSOLE_VERSION") {
-            Ok(_) => "iterm",
-            // kitty direct doesnt work in tmux
-            Err(_) => {
-                if self.tmux {
-                    "kitty-icat"
-                } else {
-                    "kitty-direct"
-                }
-            }
+        let logo_backend = if self.term == "konsole" {
+            "iterm"
+        } else if self.tmux {
+            "kitty-icat"
+        } else {
+            "kitty-direct"
         };
 
         json!({
@@ -256,7 +257,11 @@ impl Logo {
             .image_size
             .unwrap_or(if self.args.challenge { 380 } else { 300 });
 
-        save_png(src, resize_with_scale(self.args.scale, side, side), &output);
+        save_png(
+            src,
+            resize_with_scale(self.args.scale, side, side, &self.term),
+            &output,
+        );
 
         self.with_backend(
             output
@@ -299,7 +304,11 @@ impl Logo {
             .image_size
             .unwrap_or(if self.args.challenge { 350 } else { 270 });
 
-        save_png(src, resize_with_scale(self.args.scale, side, side), &output);
+        save_png(
+            src,
+            resize_with_scale(self.args.scale, side, side, &self.term),
+            &output,
+        );
 
         self.with_backend(
             output
@@ -310,7 +319,7 @@ impl Logo {
 
     /// creates the wallpaper ascii that fastfetch will display
     pub fn show_wallpaper_ascii(&self, image_arg: &Option<String>) -> PathBuf {
-        let img = resize_wallpaper(&self.args, image_arg);
+        let img = resize_wallpaper(&self.args, &self.term, image_arg);
         let output_dir = img.parent().expect("could not get output dir");
 
         // NOTE: uses patched version of ascii-image-converter to be able to output colored ascii text to file
@@ -392,7 +401,7 @@ impl Logo {
 
         if self.args.wallpaper.is_some() {
             return self.with_backend(
-                resize_wallpaper(&self.args, &self.args.wallpaper)
+                resize_wallpaper(&self.args, &self.term, &self.args.wallpaper)
                     .to_str()
                     .expect("could not convert output path to str"),
             );
