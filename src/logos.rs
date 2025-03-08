@@ -44,7 +44,7 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32, term: &str) ->
             .map_or(1.0, |monitor| monitor.scale)
     });
 
-    if term == "ghostty" {
+    if term == "ghostty" || term.contains("wezterm") {
         scale = scale.ceil();
     }
 
@@ -217,6 +217,8 @@ impl Logo {
     fn with_backend(&self, source: &str) -> JsonValue {
         let logo_backend = if self.term == "konsole" {
             "iterm"
+        } else if self.term == "foot" {
+            "sixel"
         } else if self.tmux {
             "kitty-icat"
         } else {
