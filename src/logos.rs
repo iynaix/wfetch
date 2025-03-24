@@ -7,9 +7,9 @@ use std::{
 
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
-use image::{codecs::png::PngEncoder, ImageBuffer, ImageEncoder, ImageReader, Rgba};
+use image::{ImageBuffer, ImageEncoder, ImageReader, Rgba, codecs::png::PngEncoder};
 use serde::Deserialize;
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue, json};
 
 use crate::{
     asset_path,
@@ -355,9 +355,15 @@ impl Logo {
     }
 
     pub fn hollow_default(&self) -> JsonValue {
-        let hollow = asset_path("nixos_hollow.txt");
         json!({
-            "source": hollow,
+            "source": asset_path("nixos_hollow.txt"),
+            "color": json!({ "1": "blue", "2": "cyan" }),
+        })
+    }
+
+    pub fn smooth_default(&self) -> JsonValue {
+        json!({
+            "source": asset_path("nixos_smooth.txt"),
             "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
@@ -382,6 +388,11 @@ impl Logo {
         #[cfg(feature = "nixos")]
         if self.args.hollow {
             return self.hollow_default();
+        }
+
+        #[cfg(feature = "nixos")]
+        if self.args.smooth {
+            return self.smooth_default();
         }
 
         if self.nixos {
@@ -430,6 +441,10 @@ impl Logo {
                         return self.hollow_default();
                     }
 
+                    if self.args.smooth {
+                        return self.smooth_default();
+                    }
+
                     if self.nixos {
                         return self.filled_default();
                     }
@@ -458,9 +473,16 @@ impl Logo {
 
                 #[cfg(feature = "nixos")]
                 if self.args.hollow {
-                    let hollow = asset_path("nixos_hollow.txt");
                     return json!({
-                        "source": hollow,
+                        "source": asset_path("nixos_hollow.txt"),
+                        "color": source_colors,
+                    });
+                }
+
+                #[cfg(feature = "nixos")]
+                if self.args.smooth {
+                    return json!({
+                        "source": asset_path("nixos_smooth.txt"),
                         "color": source_colors,
                     });
                 }

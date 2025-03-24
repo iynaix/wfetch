@@ -1,5 +1,5 @@
 use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug, Clone)]
@@ -13,6 +13,8 @@ use clap_complete::{generate, Shell};
     .args(&[
         #[cfg(feature = "nixos")]
         "hollow",
+        #[cfg(feature = "nixos")]
+        "smooth",
         #[cfg(feature = "nixos")]
         "waifu",
         #[cfg(feature = "nixos")]
@@ -32,6 +34,10 @@ pub struct WFetchArgs {
     #[cfg(feature = "nixos")]
     #[arg(long, action, help = "Show hollow NixOS logo")]
     pub hollow: bool,
+
+    #[cfg(feature = "nixos")]
+    #[arg(long, action, help = "Show NixOS logo with smooth edges")]
+    pub smooth: bool,
 
     #[cfg(feature = "nixos")]
     #[arg(

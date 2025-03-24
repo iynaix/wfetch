@@ -50,6 +50,9 @@ Options:
       --hollow
           Show hollow NixOS logo
 
+      --smooth
+          Show NixOS logo with smooth edges
+
       --waifu
           Show waifu NixOS logo with dynamic colors
 
