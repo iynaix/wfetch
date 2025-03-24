@@ -122,10 +122,13 @@ Options:
 ## Screenshots
 
 ### (default)
-<img src="https://i.imgur.com/X0m8dVt.png" /><br/>
+<img src="https://i.imgur.com/X0m8dVt.png" />
 
 ### --hollow
-<img src="https://i.imgur.com/jtZjItL.png" /><br/>
+<img src="https://i.imgur.com/jtZjItL.png" />
+
+### --smooth
+<img src="https://i.imgur.com/Di2OqM2.png" />
 
 ### --wallpaper
 <!-- 110026463_p0.webp -->
@@ -139,7 +142,7 @@ Options:
 
 ### --wallpaper-ascii
 <!-- wallhaven-5g67o9.webp -->
-<img src="https://i.imgur.com/wzX9xUQ.png" /><br/>
+<img src="https://i.imgur.com/wzX9xUQ.png" />
 
 ## Packaging
 

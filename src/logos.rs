@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     io::Read,
     path::PathBuf,
     process::{Command, Stdio},
@@ -14,10 +13,10 @@ use serde_json::{Value as JsonValue, json};
 use crate::{
     asset_path,
     cli::WFetchArgs,
-    colors::{self, Rgba8, Rgba8Ext, TERMINAL_COLORS},
+    colors::{self, Rgba8, Rgba8Ext},
     create_output_file, wallpaper,
 };
-use crate::{colors::get_logo_colors, wallpaper::geom_from_str};
+use crate::{colors::get_term_colors, wallpaper::geom_from_str};
 
 const NIX_COLOR1: [u8; 4] = [0x7e, 0xba, 0xe4, 255];
 const NIX_COLOR2: [u8; 4] = [0x52, 0x77, 0xc3, 255];
@@ -364,14 +363,24 @@ impl Logo {
     pub fn smooth_default(&self) -> JsonValue {
         json!({
             "source": asset_path("nixos_smooth.txt"),
-            "color": json!({ "1": "blue", "2": "cyan" }),
+            "color": json!({
+                "1": "38;5;4", // blue
+                "2": "38;5;6", // cyan
+                "2": "48;5;6", // blue bg
+                "2": "48;5;4", // cyan by
+             }),
         })
     }
 
     pub fn filled_default(&self) -> JsonValue {
         json!({
             "source": "nixos",
-            "color": json!({ "1": "blue", "2": "cyan"}),
+            "color": json!({
+                "1": "38;5;4", // blue
+                "2": "38;5;6", // cyan
+                "2": "48;5;6", // blue bg
+                "2": "48;5;4", // cyan by
+             }),
         })
     }
 
@@ -425,7 +434,7 @@ impl Logo {
             return self.module_for_tmux();
         }
 
-        match get_logo_colors() {
+        match get_term_colors() {
             Err(_) => {
                 #[cfg(feature = "nixos")]
                 {
@@ -464,11 +473,11 @@ impl Logo {
                     return self.waifu2(&color1, &color2);
                 }
 
-                // get named colors to pass to fastfetch
-                let named_colors: HashMap<_, _> = term_colors.iter().zip(TERMINAL_COLORS).collect();
                 let source_colors = json!({
-                    "1": (*named_colors.get(&color1).unwrap_or(&"blue")).to_string(),
-                    "2": (*named_colors.get(&color2).unwrap_or(&"cyan")).to_string(),
+                    "1": color1.term_fg(),
+                    "2": color2.term_fg(),
+                    "3": color2.term_bg(),
+                    "4": color1.term_bg(),
                 });
 
                 #[cfg(feature = "nixos")]

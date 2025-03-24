@@ -2,7 +2,7 @@ use crate::cli::WFetchArgs;
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use logos::Logo;
 use nix::unistd::getpgrp;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     env,
