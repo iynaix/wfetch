@@ -21,27 +21,55 @@ use crate::{colors::get_term_colors, wallpaper::geom_from_str};
 const NIX_COLOR1: [u8; 4] = [0x7e, 0xba, 0xe4, 255];
 const NIX_COLOR2: [u8; 4] = [0x52, 0x77, 0xc3, 255];
 
+fn get_hyprland_scale() -> Option<f64> {
+    #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct HyprMonitor {
+        pub scale: f64,
+        pub focused: bool,
+    }
+
+    // no scale arg provided, try getting it from hyprland
+    Command::new("hyprctl")
+        .arg("monitors")
+        .arg("-j")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .and_then(|stdout| serde_json::from_str::<Vec<HyprMonitor>>(&stdout).ok())
+        .and_then(|monitors| monitors.into_iter().find(|m| m.focused))
+        .map(|monitor| monitor.scale)
+}
+
+fn get_niri_scale() -> Option<f64> {
+    #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
+    pub struct NiriMonitor {
+        pub logical: Option<NiriLogical>,
+    }
+
+    #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
+    pub struct NiriLogical {
+        pub scale: f64,
+    }
+
+    Command::new("niri")
+        .arg("msg")
+        .arg("--json")
+        .arg("focused-output")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .and_then(|stdout| serde_json::from_str::<NiriMonitor>(&stdout).ok())
+        .and_then(|monitor| monitor.logical.map(|logical| logical.scale))
+}
+
 /// returns new sizes adjusted for the given scale
 fn resize_with_scale(scale: Option<f64>, width: u32, height: u32, term: &str) -> (u32, u32) {
-    let mut scale = scale.unwrap_or_else(|| {
-        #[derive(Default, Debug, Clone, PartialEq, Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        pub struct HyprMonitor {
-            pub scale: f64,
-            pub focused: bool,
-        }
-
-        // no scale arg provided, try getting it from hyprland
-        Command::new("hyprctl")
-            .arg("monitors")
-            .arg("-j")
-            .output()
-            .ok()
-            .and_then(|output| String::from_utf8(output.stdout).ok())
-            .and_then(|stdout| serde_json::from_str::<Vec<HyprMonitor>>(&stdout).ok())
-            .and_then(|monitors| monitors.into_iter().find(|m| m.focused))
-            .map_or(1.0, |monitor| monitor.scale)
-    });
+    // no scale arg, provided, try getting scale from hyprland or niri
+    let mut scale = scale
+        .or_else(get_hyprland_scale)
+        .or_else(get_niri_scale)
+        .unwrap_or(1.0);
 
     if term == "ghostty" || term.contains("wezterm") {
         scale = scale.ceil();
@@ -187,13 +215,14 @@ fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output
         .expect("failed to resize image");
 
     let mut result_buf = std::io::BufWriter::new(
-        std::fs::File::create(output).unwrap_or_else(|_| panic!("could not create {output:?}")),
+        std::fs::File::create(output)
+            .unwrap_or_else(|_| panic!("could not create {}", output.display())),
     );
 
     #[allow(clippy::cast_sign_loss)]
     PngEncoder::new(&mut result_buf)
         .write_image(dest.buffer(), dst_w, dst_h, image::ColorType::Rgba8.into())
-        .unwrap_or_else(|_| panic!("failed to write png for {output:?}"));
+        .unwrap_or_else(|_| panic!("failed to write png for {}", output.display()));
 }
 
 pub struct Logo {
