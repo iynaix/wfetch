@@ -1,5 +1,6 @@
 .devenv
 .direnv
+.envrc
 result
 target
 completions
