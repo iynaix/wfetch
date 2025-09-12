@@ -70,5 +70,10 @@
             default = wfetch;
           };
         };
+      flake = {
+        hydraJobs = {
+          inherit (self) devShells packages;
+        };
+      };
     };
 }
