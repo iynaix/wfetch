@@ -250,7 +250,7 @@ impl Logo {
         } else if self.tmux {
             "kitty-icat"
         } else {
-            "kitty-direct"
+            "kitty"
         };
 
         json!({
