@@ -9,7 +9,6 @@
   fastfetch,
   glib,
   gexiv2,
-  iynaixos ? false,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -32,7 +31,7 @@ rustPlatform.buildRustPackage {
   cargoLock.lockFile = ./Cargo.lock;
 
   buildNoDefaultFeatures = true;
-  buildFeatures = [ "nixos" ] ++ lib.optionals iynaixos [ "iynaixos" ];
+  buildFeatures = [ "nixos" ];
 
   # create files for shell autocomplete
   nativeBuildInputs = [
@@ -41,7 +40,7 @@ rustPlatform.buildRustPackage {
     pkg-config
   ];
 
-  buildInputs = lib.optionals iynaixos [
+  buildInputs = [
     glib
     gexiv2
   ];

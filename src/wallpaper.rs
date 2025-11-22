@@ -3,11 +3,10 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::{full_path, CommandUtf8};
+use crate::{CommandUtf8, full_path};
 
-#[cfg(feature = "iynaixos")]
 /// detect wallpaper using current-wallpaper file in tmpfs
-fn detect_iynaixos() -> Option<String> {
+pub fn detect_iynaixos() -> Option<String> {
     std::fs::read_to_string(
         dirs::runtime_dir()
             .expect("could not get XDG_RUNTIME_DIR")
@@ -29,7 +28,6 @@ pub fn geom_from_str(crop: &str) -> Option<(f64, f64, f64, f64)> {
     }
 }
 
-#[cfg(feature = "iynaixos")]
 /// reads the wallpaper info from image xmp metadata (w, h, x, y)
 pub fn info(image: &str, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
     use rexiv2::Metadata;
@@ -131,7 +129,6 @@ where
         wallpaper_arg
             .as_ref()
             .and_then(|s| s.as_ref().to_str().map(std::string::ToString::to_string)),
-        #[cfg(feature = "iynaixos")]
         detect_iynaixos(),
         detect_swww(),
         detect_swaybg(),

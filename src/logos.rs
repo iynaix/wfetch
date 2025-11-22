@@ -14,7 +14,8 @@ use crate::{
     asset_path,
     cli::WFetchArgs,
     colors::{self, Rgba8, Rgba8Ext},
-    create_output_file, wallpaper,
+    create_output_file,
+    wallpaper::{self, detect_iynaixos},
 };
 use crate::{colors::get_term_colors, wallpaper::geom_from_str};
 
@@ -130,7 +131,6 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
         .decode()
         .expect("could not decode image");
 
-    #[cfg_attr(not(feature = "iynaixos"), allow(unused_mut))]
     let mut fallback_geometry = {
         let (width, height) =
             image::image_dimensions(&wall).expect("could not get image dimensions");
@@ -144,8 +144,7 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
         }
     };
 
-    #[cfg(feature = "iynaixos")]
-    {
+    if detect_iynaixos().is_some() {
         fallback_geometry = wallpaper::info(&wall, fallback_geometry);
     }
 
@@ -256,6 +255,7 @@ impl Logo {
         json!({
             "type": logo_backend,
             "source": source,
+            "recache": true,
             "preserveAspectRatio": true,
         })
     }
