@@ -257,7 +257,7 @@ impl Fastfetch {
         let shell = std::env::var("SHELL").unwrap_or_default();
         let shell = shell
             .rsplit_once('/')
-            .map_or_else(|| shell.to_string(), |(_, end)| end.to_string());
+            .map_or_else(|| shell.clone(), |(_, end)| end.to_string());
 
         let icon = match shell.as_str() {
             "fish" => "󰈺",

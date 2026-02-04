@@ -5,24 +5,24 @@ edition = "2024"
 build = "build.rs"
 
 [dependencies]
-chrono = "0.4.42"
-clap = { version = "4.5.53", features = ["derive", "string"] }
-clap_complete = "4.5.61"
+chrono = "0.4.43"
+clap = { version = "4.5.57", features = ["derive", "string"] }
+clap_complete = "4.5.65"
 crossterm = "0.29.0"
 dirs = "6.0.0"
-fast_image_resize = { version = "5.3.0", features = ["image", "rayon"] }
+fast_image_resize = { version = "6.0.0", features = ["image", "rayon"] }
 image = "0.25.9"
-nix = { version = "0.30.1", features = ["process"] }
+nix = { version = "0.31.1", features = ["process"] }
 rexiv2 = { version = "0.10.0" }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
-signal-hook = "0.3.18"
-sysinfo = "0.37.2"
+serde_json = "1.0.149"
+signal-hook = "0.4.3"
+sysinfo = "0.38.0"
 xterm-query = "0.5.2"
 
 [build-dependencies]
-clap = { version = "4.5.53", features = ["derive", "string"] }
-clap_complete = "4.5.61"
+clap = { version = "4.5.57", features = ["derive", "string"] }
+clap_complete = "4.5.65"
 clap_mangen = "0.2.31"
 
 [features]
