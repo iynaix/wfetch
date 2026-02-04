@@ -84,8 +84,8 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32, term: &str) ->
     )
 }
 
-pub fn image_from_arg(arg: &Option<String>) -> Option<String> {
-    if *arg == Some("-".to_string()) {
+pub fn image_from_arg(arg: &str) -> Option<String> {
+    if arg == "-" {
         let mut buf = Vec::new();
         std::io::stdin()
             .read_to_end(&mut buf)
@@ -100,31 +100,29 @@ pub fn image_from_arg(arg: &Option<String>) -> Option<String> {
             return Some(output.to_string_lossy().to_string());
         }
 
-        return String::from_utf8(buf).ok().and_then(|s| {
+        String::from_utf8(buf).ok().and_then(|s| {
             let full_path = std::fs::canonicalize(s.trim())
                 .map(|p| p.to_string_lossy().to_string())
                 .ok();
 
             wallpaper::detect(&full_path)
-        });
+        })
+    } else {
+        wallpaper::detect(&Some(arg))
     }
-
-    wallpaper::detect(arg)
 }
 
 /// creates the wallpaper image that fastfetch will display
 pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String>) -> PathBuf {
     let output = create_output_file("wfetch.png");
 
-    let img = image_from_arg(image_arg).unwrap_or_else(|| {
-        eprintln!("Error: could not detect wallpaper!");
-        std::process::exit(1);
-    });
-
-    let wall = wallpaper::detect(&Some(img)).unwrap_or_else(|| {
-        eprintln!("Error: could not detect wallpaper!");
-        std::process::exit(1);
-    });
+    let wall = image_arg
+        .as_ref()
+        .and_then(|img| image_from_arg(img.as_str()))
+        .unwrap_or_else(|| {
+            eprintln!("Error: could not detect wallpaper!");
+            std::process::exit(1);
+        });
 
     ImageReader::open(&wall)
         .expect("could not open image")

@@ -51,7 +51,7 @@ fn detect_swww() -> Option<String> {
         .filter(|wallpaper| !wallpaper.is_empty() && wallpaper != "STDIN")
 }
 
-// detect wallpaper using swaybg
+/// detect wallpaper using swaybg
 fn detect_swaybg() -> Option<String> {
     let sys = sysinfo::System::new_all();
 
@@ -61,6 +61,7 @@ fn detect_swaybg() -> Option<String> {
         .and_then(|wallpaper| wallpaper.into_string().ok())
 }
 
+/// detect wallpaper using hyprpaper
 fn detect_hyprpaper() -> Option<String> {
     std::fs::read_to_string(full_path("~/.config/hypr/hyprpaper.conf"))
         .ok()?
@@ -102,6 +103,7 @@ fn detect_gsettings() -> Option<String> {
     })
 }
 
+/// detect wallpaper for plasma
 fn detect_plasma() -> Option<String> {
     let plasma_script = r#"print(desktops().map(d => {d.currentConfigGroup=["Wallpaper", "org.kde.image", "General"]; return d.readConfig("Image")}).join("\n"))"#;
     Command::new("qdbus")
@@ -119,6 +121,55 @@ fn detect_plasma() -> Option<String> {
         })
 }
 
+/// detect wallpaper for noctalia shell
+fn detect_noctalia() -> Option<String> {
+    #[derive(Debug, serde::Deserialize)]
+    pub struct NoctaliaState {
+        pub state: NoctaliaWallpaperState,
+    }
+
+    #[derive(Debug, serde::Deserialize)]
+    pub struct NoctaliaWallpaperState {
+        pub wallpapers: std::collections::HashMap<String, String>,
+    }
+
+    fn try_noctalia_command(cmd: &mut Command) -> Option<String> {
+        let output = cmd.output().ok()?;
+
+        if !output.status.success() {
+            return None;
+        }
+
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        let noctalia_state: NoctaliaState = serde_json::from_str(&output_str).ok()?;
+
+        noctalia_state.state.wallpapers.values().next().cloned()
+    }
+
+    try_noctalia_command(Command::new("noctalia-shell").args(["ipc", "call", "state", "all"]))
+        .or_else(|| {
+            try_noctalia_command(
+                Command::new("qs")
+                    .args(["-c", "noctalia-shell"])
+                    .args(["ipc", "call", "state", "all"]),
+            )
+        })
+}
+
+/// detect wallpaper for dank material shell
+fn detect_dms() -> Option<String> {
+    let output = Command::new("dms")
+        .args(["ipc", "call", "wallpaper", "get"])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    Some(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
 /// returns full path to the wallpaper
 pub fn detect<P>(wallpaper_arg: &Option<P>) -> Option<String>
 where
@@ -133,6 +184,8 @@ where
         detect_swww(),
         detect_swaybg(),
         detect_hyprpaper(),
+        detect_noctalia(),
+        detect_dms(),
         detect_gsettings(), // gnome / cinnamon / mate
         detect_plasma(),    // kde
     ]
