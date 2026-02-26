@@ -15,6 +15,7 @@ fn normalize_channel(channel: u8) -> f64 {
 
 pub type Rgba8 = Rgba<u8>;
 pub const BLACK: Rgba8 = Rgba([0, 0, 0, 255]);
+pub const WHITE: Rgba8 = Rgba([255, 255, 255, 255]);
 
 pub trait Rgba8Ext {
     type Err;
@@ -114,23 +115,11 @@ impl Rgba8Ext for Rgba8 {
 }
 
 fn color_pair_score(color1: Rgba8, color2: Rgba8) -> f64 {
-    const WCAG_THRESHOLD: f64 = 3.0;
-
-    // must meet minimum contrast threshold (WCAG AA for UI components)
-    let color1_color2 = color1.contrast_ratio(&color2);
-    if color1_color2 < WCAG_THRESHOLD {
-        return 0.0;
-    }
-
-    let color1_black = color1.contrast_ratio(&BLACK);
-    let color2_black = color2.contrast_ratio(&BLACK);
-
-    // at least one color should be readable on dark background
-    if color1_black < WCAG_THRESHOLD && color2_black < WCAG_THRESHOLD {
-        return 0.0;
-    }
-
-    color1_black + color2_black
+    color1.contrast_ratio(&color2)
+        + color1.contrast_ratio(&BLACK)
+        + color2.contrast_ratio(&BLACK)
+        + color1.contrast_ratio(&WHITE)
+        + color2.contrast_ratio(&WHITE)
 }
 
 /// find the most contrasting pair of colors in a list
