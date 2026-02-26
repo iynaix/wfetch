@@ -1,17 +1,9 @@
 use std::collections::HashMap;
 
-use image::Rgba;
+use image::{Pixel, Rgba};
+use palette::{IntoColor, Lab, Srgb, color_difference::EuclideanDistance};
 
 use crate::{WFetchResult, full_path};
-
-fn normalize_channel(channel: u8) -> f64 {
-    let channel = f64::from(channel) / 255.0;
-    if channel <= 0.03928 {
-        channel / 12.92
-    } else {
-        ((channel + 0.055) / 1.055).powf(2.4)
-    }
-}
 
 pub type Rgba8 = Rgba<u8>;
 pub const BLACK: Rgba8 = Rgba([0, 0, 0, 255]);
@@ -24,6 +16,8 @@ pub trait Rgba8Ext {
     where
         Self: Sized;
 
+    fn to_lab(&self) -> Lab;
+
     #[must_use]
     fn with_alpha(self, alpha: u8) -> Self;
 
@@ -31,10 +25,6 @@ pub trait Rgba8Ext {
 
     #[must_use]
     fn multiply(&self, other: Self) -> Self;
-
-    fn relative_luminance(&self) -> f64;
-
-    fn contrast_ratio(&self, other: &Self) -> f64;
 
     /// ansi color code for terminal background in a format suitable for fastfetch
     fn term_fg(&self) -> String;
@@ -73,36 +63,16 @@ impl Rgba8Ext for Rgba8 {
         Self([self[0], self[1], self[2], alpha])
     }
 
+    fn to_lab(&self) -> Lab {
+        Srgb::new(self[0], self[1], self[2])
+            .into_format::<f32>()
+            .into_color()
+    }
+
     #[allow(clippy::cast_possible_truncation)]
     #[allow(clippy::cast_sign_loss)]
     fn multiply(&self, other: Self) -> Self {
-        Self([
-            (f64::from(self[0]) * f64::from(other[0]) / 255.0) as u8,
-            (f64::from(self[1]) * f64::from(other[1]) / 255.0) as u8,
-            (f64::from(self[2]) * f64::from(other[2]) / 255.0) as u8,
-            self[3],
-        ])
-    }
-
-    /// relative luminance, as defined by WCAG
-    /// <https://www.w3.org/TR/WCAG20/#relativeluminancedef>
-    fn relative_luminance(&self) -> f64 {
-        let r = normalize_channel(self[0]);
-        let g = normalize_channel(self[1]);
-        let b = normalize_channel(self[2]);
-
-        0.0722_f64.mul_add(b, 0.2126_f64.mul_add(r, 0.7152 * g))
-    }
-
-    fn contrast_ratio(&self, other: &Self) -> f64 {
-        let l1 = self.relative_luminance();
-        let l2 = other.relative_luminance();
-
-        if l1 > l2 {
-            (l1 + 0.05) / (l2 + 0.05)
-        } else {
-            (l2 + 0.05) / (l1 + 0.05)
-        }
+        self.map2(&other, |a, b| (f64::from(a) * f64::from(b) / 255.0) as u8)
     }
 
     fn term_fg(&self) -> String {
@@ -114,33 +84,71 @@ impl Rgba8Ext for Rgba8 {
     }
 }
 
-fn color_pair_score(color1: Rgba8, color2: Rgba8) -> f64 {
-    color1.contrast_ratio(&color2)
-        + color1.contrast_ratio(&BLACK)
-        + color2.contrast_ratio(&BLACK)
-        + color1.contrast_ratio(&WHITE)
-        + color2.contrast_ratio(&WHITE)
-}
+/// find the most contrasting n colors in a list
+pub fn most_contrasting_colors(colors: &[Rgba<u8>], n: usize) -> Vec<Rgba<u8>> {
+    let colors: HashMap<_, _> = colors.iter().map(|c| (c, c.to_lab())).collect();
+    let mut unique_colors: Vec<Lab> = Vec::new();
 
-/// find the most contrasting pair of colors in a list
-pub fn most_contrasting_pair(colors: &[Rgba8]) -> (Rgba8, Rgba8) {
+    for lab in colors.values() {
+        // Only keep the color if it's far enough from all current unique colors
+        // deltaE 2.3 is barely perceptible, 10.0 is significantly different
+        if unique_colors.iter().all(|c| lab.distance(*c) > 10.0) {
+            unique_colors.push(*lab);
+        }
+    }
+
     let mut max_score = 0.0;
-    let mut most_contrasting_pair = (image::Rgba([0, 0, 0, 255]), image::Rgba([0, 0, 0, 255]));
+    let mut pair = (Lab::default(), Lab::default());
 
-    for color1 in colors {
-        for color2 in colors {
-            if color1 == color2 {
+    for c1 in &unique_colors {
+        for c2 in &unique_colors {
+            if c1 == c2 {
                 continue;
             }
 
-            let score = color_pair_score(*color1, *color2);
+            // lab distance
+            let score = c1.distance(*c2);
             if score > max_score {
                 max_score = score;
-                most_contrasting_pair = (*color1, *color2);
+                pair = (*c1, *c2);
             }
         }
     }
-    most_contrasting_pair
+
+    let mut selected = vec![pair.0, pair.1];
+
+    for _ in 2..n {
+        let min = unique_colors
+            .iter()
+            .min_by(|a, b| {
+                let a_dist: f32 = selected
+                    .iter()
+                    .filter(|sel| sel != a && sel != b)
+                    .map(|sel| a.distance(*sel))
+                    .sum();
+                let b_dist: f32 = selected
+                    .iter()
+                    .filter(|sel| sel != a && sel != b)
+                    .map(|sel| b.distance(*sel))
+                    .sum();
+
+                a_dist.total_cmp(&b_dist)
+            })
+            .expect("no min");
+
+        selected.push(*min);
+    }
+
+    selected
+        .iter()
+        .map(|sel| {
+            **colors
+                .iter()
+                .find(|(_, l)| *l == sel)
+                .expect("could not find lab color equivalent")
+                .0
+        })
+        .collect()
 }
 
 #[derive(serde::Deserialize)]

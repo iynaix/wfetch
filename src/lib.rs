@@ -1,4 +1,7 @@
-use crate::cli::WFetchArgs;
+use crate::{
+    cli::WFetchArgs,
+    colors::{get_term_colors, most_contrasting_colors},
+};
 use chrono::{DateTime, Datelike, NaiveDate, Timelike};
 use logos::Logo;
 use nix::unistd::getpgrp;
@@ -459,13 +462,29 @@ impl Fastfetch {
 
         // set colors for modules
         if !self.args.no_color_keys {
-            let colors = ["green", "yellow", "blue", "magenta", "cyan"];
-            for (i, module) in modules.iter_mut().enumerate() {
+            let colors: Vec<String> = match get_term_colors() {
+                Err(_) => ["green", "yellow", "blue", "magenta"]
+                    .into_iter()
+                    .map(String::from)
+                    .collect(),
+                Ok(term_colors) => {
+                    // remove background color to get contrast
+                    most_contrasting_colors(&term_colors[1..], 3)
+                        .iter()
+                        // .skip(2) // don't use the same colors as the logo
+                        .map(colors::Rgba8Ext::term_fg)
+                        .collect()
+                }
+            };
+            let mut color_idx = 0;
+            for module in &mut modules {
                 if let Value::Object(module) = module {
-                    module.insert("keyColor".into(), json!(colors[i % colors.len()]));
+                    module.insert("keyColor".into(), json!(colors[color_idx % colors.len()]));
+                    color_idx += 1;
                 }
             }
         }
+        // std::process::exit(0);
 
         // optional challenge block
         if self.args.challenge {

@@ -13,7 +13,7 @@ use serde_json::{Value as JsonValue, json};
 use crate::{
     asset_path,
     cli::WFetchArgs,
-    colors::{self, Rgba8, Rgba8Ext},
+    colors::{Rgba8, Rgba8Ext, most_contrasting_colors},
     create_output_file,
     wallpaper::{self, detect_iynaixos},
 };
@@ -489,7 +489,9 @@ impl Logo {
 
             Ok(term_colors) => {
                 // remove background color to get contrast
-                let (color1, color2) = colors::most_contrasting_pair(&term_colors[1..]);
+                let contrasting_colors = most_contrasting_colors(&term_colors[1..], 2);
+                let color1 = contrasting_colors[0];
+                let color2 = contrasting_colors[1];
 
                 #[cfg(feature = "nixos")]
                 if self.args.waifu {
