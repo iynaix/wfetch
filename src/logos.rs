@@ -394,7 +394,7 @@ impl Logo {
                 "1": "38;5;4", // blue
                 "2": "38;5;6", // cyan
                 "2": "48;5;6", // blue bg
-                "2": "48;5;4", // cyan by
+                "2": "48;5;4", // cyan bg
              }),
         })
     }
@@ -406,7 +406,7 @@ impl Logo {
                 "1": "38;5;4", // blue
                 "2": "38;5;6", // cyan
                 "2": "48;5;6", // blue bg
-                "2": "48;5;4", // cyan by
+                "2": "48;5;4", // cyan bg
              }),
         })
     }
@@ -500,18 +500,14 @@ impl Logo {
                     return self.waifu2(&color1, &color2);
                 }
 
-                let source_colors = json!({
-                    "1": color1.term_fg(),
-                    "2": color2.term_fg(),
-                    "3": color2.term_bg(),
-                    "4": color1.term_bg(),
-                });
-
                 #[cfg(feature = "nixos")]
                 if self.args.hollow {
                     return json!({
                         "source": asset_path("nixos_hollow.txt"),
-                        "color": source_colors,
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                        }),
                     });
                 }
 
@@ -519,14 +515,27 @@ impl Logo {
                 if self.args.smooth {
                     return json!({
                         "source": asset_path("nixos_smooth.txt"),
-                        "color": source_colors,
+                        // note: it is 1 2 2 1 intentionally
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                            "3": color2.term_bg(),
+                            "4": color1.term_bg(),
+                        }),
                     });
                 }
 
                 if self.nixos {
                     return json!({
                         "source": "nixos",
-                        "color": source_colors,
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                            "3": color1.term_fg(),
+                            "4": color2.term_fg(),
+                            "5": color1.term_fg(),
+                            "6": color2.term_fg(),
+                        }),
                     });
                 }
             }
