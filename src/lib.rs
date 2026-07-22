@@ -516,3 +516,14 @@ impl Fastfetch {
             .unwrap_or_else(|_| panic!("failed to write json config"));
     }
 }
+
+pub fn get_terminal_cell_height() -> Option<f32> {
+    let mut ws: libc::winsize = unsafe { std::mem::zeroed() };
+    let ret = unsafe { libc::ioctl(0, libc::TIOCGWINSZ, &mut ws as *mut _) };
+    if ret != 0 {
+        eprintln!("ioctl failed");
+        return None;
+    }
+
+    Some(ws.ws_ypixel as f32 / ws.ws_row as f32)
+}

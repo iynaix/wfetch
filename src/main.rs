@@ -14,8 +14,9 @@ use std::{
     time::Duration,
 };
 use wfetch::{
-    cli::{generate_completions, WFetchArgs},
-    create_output_file, Fastfetch,
+    Fastfetch,
+    cli::{WFetchArgs, generate_completions},
+    create_output_file,
 };
 
 fn wfetch(args: &WFetchArgs) {

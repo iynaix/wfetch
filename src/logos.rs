@@ -14,7 +14,7 @@ use crate::{
     asset_path,
     cli::WFetchArgs,
     colors::{Rgba8, Rgba8Ext, most_contrasting_colors},
-    create_output_file,
+    create_output_file, get_terminal_cell_height,
     wallpaper::{self, detect_iynaixos},
 };
 use crate::{colors::get_term_colors, wallpaper::geom_from_str};
@@ -112,6 +112,17 @@ pub fn image_from_arg(arg: &str) -> Option<String> {
     }
 }
 
+/// calculates a target image height, taking cell height into account if possible for the perfect fit
+fn image_height(target_height: u32, lines: u32) -> u32 {
+    // kitty adds an extra blank row if the pixel height doesn't divide evenly
+    // into the cell height
+    // add 1 to image if it is a multiple to get the text to be vertically centered against
+    // the image
+    get_terminal_cell_height().map_or(target_height, |cell_height| {
+        (cell_height * lines as f32).ceil() as u32 + 1
+    })
+}
+
 /// creates the wallpaper image that fastfetch will display
 pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String>) -> PathBuf {
     let output = create_output_file("wfetch.png");
@@ -160,9 +171,11 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
         .decode()
         .expect("could not decode image");
 
-    let dst_size = args
-        .image_size
-        .unwrap_or(if args.challenge { 350 } else { 270 });
+    let dst_size = args.image_size.unwrap_or(if args.challenge {
+        image_height(350, 13 + 4)
+    } else {
+        image_height(270, 13)
+    });
 
     let (dst_size, _) = resize_with_scale(args.scale, dst_size, dst_size, term);
 
@@ -327,10 +340,11 @@ impl Logo {
             }
         }
 
-        let side = self
-            .args
-            .image_size
-            .unwrap_or(if self.args.challenge { 350 } else { 270 });
+        let side = self.args.image_size.unwrap_or(if self.args.challenge {
+            image_height(350, 13 + 4)
+        } else {
+            image_height(270, 11)
+        });
 
         save_png(
             src,
