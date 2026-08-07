@@ -14,7 +14,13 @@ use clap_complete::{Shell, generate};
         #[cfg(feature = "nixos")]
         "hollow",
         #[cfg(feature = "nixos")]
+        "hollow_large",
+        #[cfg(feature = "nixos")]
         "smooth",
+        #[cfg(feature = "nixos")]
+        "dots",
+        #[cfg(feature = "nixos")]
+        "hashes",
         #[cfg(feature = "nixos")]
         "waifu",
         #[cfg(feature = "nixos")]
@@ -32,12 +38,34 @@ use clap_complete::{Shell, generate};
 ]))]
 pub struct WFetchArgs {
     #[cfg(feature = "nixos")]
-    #[arg(long, action, help = "Show hollow NixOS logo")]
+    #[arg(
+        long,
+        action,
+        alias = "hollow-small",
+        help = "Show hollow NixOS logo (small)"
+    )]
     pub hollow: bool,
+
+    #[cfg(feature = "nixos")]
+    #[arg(
+        long,
+        action,
+        alias = "hollow-large",
+        help = "Show hollow NixOS logo (large)"
+    )]
+    pub hollow_large: bool,
 
     #[cfg(feature = "nixos")]
     #[arg(long, action, help = "Show NixOS logo with smooth edges")]
     pub smooth: bool,
+
+    #[cfg(feature = "nixos")]
+    #[arg(long, action, visible_aliases = ["braille"], help = "Show NixOS logo with dots")]
+    pub dots: bool,
+
+    #[cfg(feature = "nixos")]
+    #[arg(long, action, visible_aliases = ["pounds"], help = "Show NixOS logo with hashes")]
+    pub hashes: bool,
 
     #[cfg(feature = "nixos")]
     #[arg(

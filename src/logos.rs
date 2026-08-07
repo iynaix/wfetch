@@ -401,6 +401,13 @@ impl Logo {
         })
     }
 
+    pub fn hollow_large_default(&self) -> JsonValue {
+        json!({
+            "source": "nixos2",
+            "color": json!({ "1": "blue", "2": "cyan" }),
+        })
+    }
+
     pub fn smooth_default(&self) -> JsonValue {
         json!({
             "source": asset_path("nixos_smooth.txt"),
@@ -410,6 +417,20 @@ impl Logo {
                 "2": "48;5;6", // blue bg
                 "2": "48;5;4", // cyan bg
              }),
+        })
+    }
+
+    pub fn dots_default(&self) -> JsonValue {
+        json!({
+            "source": asset_path("nixos_dots.txt"),
+            "color": json!({ "1": "blue", "2": "cyan" }),
+        })
+    }
+
+    pub fn hashes_default(&self) -> JsonValue {
+        json!({
+            "source": "nixos_old",
+            "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
 
@@ -443,6 +464,11 @@ impl Logo {
         #[cfg(feature = "nixos")]
         if self.args.smooth {
             return self.smooth_default();
+        }
+
+        #[cfg(feature = "nixos")]
+        if self.args.dots {
+            return self.dots_default();
         }
 
         if self.nixos {
@@ -491,8 +517,20 @@ impl Logo {
                         return self.hollow_default();
                     }
 
+                    if self.args.hollow {
+                        return self.hollow_large_default();
+                    }
+
                     if self.args.smooth {
                         return self.smooth_default();
+                    }
+
+                    if self.args.dots {
+                        return self.dots_default();
+                    }
+
+                    if self.args.hashes {
+                        return self.hashes_default();
                     }
 
                     if self.nixos {
@@ -520,6 +558,39 @@ impl Logo {
                 if self.args.hollow {
                     return json!({
                         "source": asset_path("nixos_hollow.txt"),
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                        }),
+                    });
+                }
+
+                #[cfg(feature = "nixos")]
+                if self.args.hollow_large {
+                    return json!({
+                        "source": "nixos2",
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                        }),
+                    });
+                }
+
+                #[cfg(feature = "nixos")]
+                if self.args.dots {
+                    return json!({
+                        "source": asset_path("nixos_dots.txt"),
+                        "color": json!({
+                            "1": color1.term_fg(),
+                            "2": color2.term_fg(),
+                        }),
+                    });
+                }
+
+                #[cfg(feature = "nixos")]
+                if self.args.hashes {
+                    return json!({
+                        "source": "nixos_old",
                         "color": json!({
                             "1": color1.term_fg(),
                             "2": color2.term_fg(),
