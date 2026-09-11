@@ -8,7 +8,7 @@
   ascii-image-converter,
   fastfetch,
   glib,
-  gexiv2,
+  gexiv2_0_10,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -42,7 +42,7 @@ rustPlatform.buildRustPackage {
 
   buildInputs = [
     glib
-    gexiv2
+    gexiv2_0_10
   ];
 
   postInstall = ''
