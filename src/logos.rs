@@ -171,10 +171,12 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
         .decode()
         .expect("could not decode image");
 
-    let dst_size = args.image_size.unwrap_or(if args.challenge {
-        image_height(350, 13 + 4)
-    } else {
-        image_height(270, 13)
+    let dst_size = args.image_size.unwrap_or_else(|| {
+        if args.challenge {
+            image_height(350, 13 + 4)
+        } else {
+            image_height(270, 13)
+        }
     });
 
     let (dst_size, _) = resize_with_scale(args.scale, dst_size, dst_size, term);
@@ -340,10 +342,12 @@ impl Logo {
             }
         }
 
-        let side = self.args.image_size.unwrap_or(if self.args.challenge {
-            image_height(350, 13 + 4)
-        } else {
-            image_height(270, 11)
+        let side = self.args.image_size.unwrap_or_else(|| {
+            if self.args.challenge {
+                image_height(350, 13 + 4)
+            } else {
+                image_height(270, 11)
+            }
         });
 
         save_png(
@@ -479,6 +483,7 @@ impl Logo {
         json!({ "source": null })
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn module(&self) -> JsonValue {
         if self.args.wallpaper_ascii.is_some() {
             let ascii_file = self.show_wallpaper_ascii(&self.args.wallpaper_ascii);

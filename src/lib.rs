@@ -67,7 +67,7 @@ pub fn asset_path(filename: &str) -> String {
     let asset = out_path.join("assets").join(filename);
     asset
         .to_str()
-        .unwrap_or_else(|| panic!("could not get asset {}", &filename))
+        .unwrap_or_else(|| panic!("could not get asset {filename}"))
         .to_string()
 }
 
@@ -519,11 +519,11 @@ impl Fastfetch {
 
 pub fn get_terminal_cell_height() -> Option<f32> {
     let mut ws: libc::winsize = unsafe { std::mem::zeroed() };
-    let ret = unsafe { libc::ioctl(0, libc::TIOCGWINSZ, &mut ws as *mut _) };
+    let ret = unsafe { libc::ioctl(0, libc::TIOCGWINSZ, &raw mut ws) };
     if ret != 0 {
         eprintln!("ioctl failed");
         return None;
     }
 
-    Some(ws.ws_ypixel as f32 / ws.ws_row as f32)
+    Some(f32::from(ws.ws_ypixel) / f32::from(ws.ws_row))
 }
