@@ -14,8 +14,7 @@ use crate::{
     asset_path,
     cli::WFetchArgs,
     colors::{Rgba8, Rgba8Ext, most_contrasting_colors},
-    create_output_file, get_terminal_cell_height,
-    wallpaper::{self, detect_iynaixos},
+    create_output_file, get_terminal_cell_height, wallpaper,
 };
 use crate::{colors::get_term_colors, wallpaper::geom_from_str};
 
@@ -153,13 +152,11 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
         }
     };
 
-    if detect_iynaixos().is_some() {
-        fallback_geometry = wallpaper::info(&wall, fallback_geometry);
-    }
-
     // use the crop argument if provided
     if let Some(crop) = args.crop.as_ref() {
         fallback_geometry = geom_from_str(crop).unwrap_or(fallback_geometry);
+    } else {
+        fallback_geometry = wallpaper::info(&wall, fallback_geometry);
     }
 
     // force the crop to be square

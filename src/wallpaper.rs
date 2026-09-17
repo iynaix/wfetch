@@ -5,17 +5,6 @@ use std::{
 
 use crate::{CommandUtf8, full_path};
 
-/// detect wallpaper using current-wallpaper file in tmpfs
-pub fn detect_iynaixos() -> Option<String> {
-    std::fs::read_to_string(
-        dirs::runtime_dir()
-            .expect("could not get XDG_RUNTIME_DIR")
-            .join("current_wallpaper"),
-    )
-    .ok()
-    .filter(|wallpaper| !wallpaper.is_empty())
-}
-
 pub fn geom_from_str(crop: &str) -> Option<(f64, f64, f64, f64)> {
     let geometry: Vec<_> = crop
         .split(['+', 'x'])
@@ -122,38 +111,17 @@ fn detect_plasma() -> Option<String> {
 }
 
 /// detect wallpaper for noctalia shell
-fn detect_noctalia() -> Option<String> {
-    #[derive(Debug, serde::Deserialize)]
-    pub struct NoctaliaState {
-        pub state: NoctaliaWallpaperState,
-    }
+pub fn detect_noctalia() -> Option<String> {
+    let cmd = Command::new("noctalia")
+        .arg("msg")
+        .arg("wallpaper-get")
+        .stdout(Stdio::piped())
+        .output()
+        .ok()?;
 
-    #[derive(Debug, serde::Deserialize)]
-    pub struct NoctaliaWallpaperState {
-        pub wallpapers: std::collections::HashMap<String, String>,
-    }
-
-    fn try_noctalia_command(cmd: &mut Command) -> Option<String> {
-        let output = cmd.output().ok()?;
-
-        if !output.status.success() {
-            return None;
-        }
-
-        let output_str = String::from_utf8_lossy(&output.stdout);
-        let noctalia_state: NoctaliaState = serde_json::from_str(&output_str).ok()?;
-
-        noctalia_state.state.wallpapers.values().next().cloned()
-    }
-
-    try_noctalia_command(Command::new("noctalia-shell").args(["ipc", "call", "state", "all"]))
-        .or_else(|| {
-            try_noctalia_command(
-                Command::new("qs")
-                    .args(["-c", "noctalia-shell"])
-                    .args(["ipc", "call", "state", "all"]),
-            )
-        })
+    String::from_utf8(cmd.stdout)
+        .ok()
+        .map(|s| s.trim().to_string())
 }
 
 /// detect wallpaper for dank material shell
@@ -180,7 +148,7 @@ where
         wallpaper_arg
             .as_ref()
             .and_then(|s| s.as_ref().to_str().map(std::string::ToString::to_string)),
-        detect_iynaixos(),
+        detect_noctalia(),
         detect_swww(),
         detect_swaybg(),
         detect_hyprpaper(),
