@@ -19,14 +19,16 @@ pub fn geom_from_str(crop: &str) -> Option<(f64, f64, f64, f64)> {
 
 /// reads the wallpaper info from image xmp metadata (w, h, x, y)
 pub fn info(image: &str, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64) {
-    use rexiv2::Metadata;
+    let wallfacer_ns = "http://example.com/wallfacer/";
 
-    let meta = Metadata::new_from_path(image).expect("could not init new metadata");
+    let mut fp = xmpkit::XmpFile::new();
+    fp.open(&image).expect("failed to open image");
 
-    meta.get_tag_string("Xmp.wallfacer.crop.1x1").map_or_else(
-        |_| fallback,
-        |crop| geom_from_str(&crop).unwrap_or(fallback),
-    )
+    fp.get_xmp().map_or(fallback, |xmp| {
+        xmp.get_struct_field(wallfacer_ns, "crops", "1x1")
+            .and_then(|crop| crop.as_str().and_then(geom_from_str))
+            .unwrap_or(fallback)
+    })
 }
 
 /// detect wallpaper using swwww

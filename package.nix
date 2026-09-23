@@ -7,8 +7,6 @@
   pkg-config,
   ascii-image-converter,
   fastfetch,
-  glib,
-  gexiv2_0_10,
 }:
 rustPlatform.buildRustPackage {
   pname = "wfetch";
@@ -38,11 +36,6 @@ rustPlatform.buildRustPackage {
     installShellFiles
     makeWrapper
     pkg-config
-  ];
-
-  buildInputs = [
-    glib
-    gexiv2_0_10
   ];
 
   postInstall = ''

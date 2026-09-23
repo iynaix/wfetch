@@ -15,11 +15,11 @@ image = "0.25.10"
 libc = "0.2.189"
 nix = { version = "0.31.3", features = ["process"] }
 palette = "0.7.7"
-rexiv2 = { version = "0.10.0" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 signal-hook = "0.4.4"
 sysinfo = "0.39.6"
+xmpkit = "0.1.6"
 xterm-query = "0.6.1"
 
 [build-dependencies]
