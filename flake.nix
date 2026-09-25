@@ -19,6 +19,7 @@
         { pkgs, ... }:
         let
           ascii-image-converter' = pkgs.ascii-image-converter.overrideAttrs (old: {
+            # allow colored ascii output
             postPatch = ''
               substituteInPlace aic_package/util.go \
                 --replace-fail "saveAscii := flattenAscii(asciiSet, false, true)" \

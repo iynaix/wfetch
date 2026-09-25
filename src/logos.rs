@@ -11,7 +11,6 @@ use serde::Deserialize;
 use serde_json::{Value as JsonValue, json};
 
 use crate::{
-    asset_path,
     cli::WFetchArgs,
     colors::{Rgba8, Rgba8Ext, most_contrasting_colors},
     create_output_file, get_terminal_cell_height, wallpaper,
@@ -276,10 +275,8 @@ impl Logo {
         let replace1 = Rgba8::from(NIX_COLOR1);
         let replace2 = Rgba8::from(NIX_COLOR2);
 
-        let mut src = ImageReader::open(asset_path("nixos1.png"))
-            .expect("could not open nixos1.png")
-            .decode()
-            .expect("could not decode nixos1.png")
+        let mut src = image::load_from_memory(include_bytes!("../assets/nixos1.png"))
+            .expect("could not load nixos1.png")
             .into_rgba8();
 
         let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
@@ -313,18 +310,17 @@ impl Logo {
     pub fn waifu2(&self, color1: &Rgba8, color2: &Rgba8) -> JsonValue {
         let output = create_output_file("wfetch.png");
 
-        let mut src = ImageReader::open(asset_path("nixos2.png"))
-            .expect("could not open nixos2.png")
-            .decode()
-            .expect("could not decode nixos2.png")
+        let mut src = image::load_from_memory(include_bytes!("../assets/nixos2.png"))
+            .expect("could not load nixos2.png")
             .into_rgba8();
 
-        let mask1 = image::open(asset_path("nixos2-mask1.jpg"))
-            .expect("could not open mask1")
-            .to_rgba8();
-        let mask2 = image::open(asset_path("nixos2-mask2.jpg"))
-            .expect("could not open mask2")
-            .to_rgba8();
+        let mask1 = image::load_from_memory(include_bytes!("../assets/nixos2-mask1.jpg"))
+            .expect("could not load nixos2-mask1.png")
+            .into_rgba8();
+
+        let mask2 = image::load_from_memory(include_bytes!("../assets/nixos2-mask2.jpg"))
+            .expect("could not load nixos2-mask2.png")
+            .into_rgba8();
 
         let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
         let black = Rgba([0, 0, 0, 255]);
@@ -397,7 +393,7 @@ impl Logo {
 
     pub fn hollow_default(&self) -> JsonValue {
         json!({
-            "source": asset_path("nixos_hollow.txt"),
+            "data": include_str!("../assets/nixos_hollow.txt"),
             "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
@@ -411,7 +407,7 @@ impl Logo {
 
     pub fn smooth_default(&self) -> JsonValue {
         json!({
-            "source": asset_path("nixos_smooth.txt"),
+            "data": include_str!("../assets/nixos_smooth.txt"),
             "color": json!({
                 "1": "38;5;4", // blue
                 "2": "38;5;6", // cyan
@@ -423,7 +419,7 @@ impl Logo {
 
     pub fn dots_default(&self) -> JsonValue {
         json!({
-            "source": asset_path("nixos_dots.txt"),
+            "data": include_str!("../assets/nixos_dots.txt"),
             "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
@@ -559,7 +555,7 @@ impl Logo {
                 #[cfg(feature = "nixos")]
                 if self.args.hollow {
                     return json!({
-                        "source": asset_path("nixos_hollow.txt"),
+                        "data": include_str!("../assets/nixos_hollow.txt"),
                         "color": json!({
                             "1": color1.term_fg(),
                             "2": color2.term_fg(),
@@ -581,7 +577,7 @@ impl Logo {
                 #[cfg(feature = "nixos")]
                 if self.args.dots {
                     return json!({
-                        "source": asset_path("nixos_dots.txt"),
+                        "data": include_str!("../assets/nixos_dots.txt"),
                         "color": json!({
                             "1": color1.term_fg(),
                             "2": color2.term_fg(),
@@ -603,7 +599,7 @@ impl Logo {
                 #[cfg(feature = "nixos")]
                 if self.args.smooth {
                     return json!({
-                        "source": asset_path("nixos_smooth.txt"),
+                        "data": include_str!("../assets/nixos_smooth.txt"),
                         // note: it is 1 2 2 1 intentionally
                         "color": json!({
                             "1": color1.term_fg(),

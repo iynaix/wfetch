@@ -39,8 +39,6 @@ rustPlatform.buildRustPackage {
   ];
 
   postInstall = ''
-    cp -r $src/assets $out
-
     installShellCompletion --cmd wfetch \
       --bash <($out/bin/wfetch --generate bash) \
       --fish <($out/bin/wfetch --generate fish) \
