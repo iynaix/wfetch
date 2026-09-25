@@ -1,5 +1,6 @@
 use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{Shell, generate};
+use color_eyre::eyre::Result;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug, Clone)]
@@ -186,7 +187,7 @@ pub enum ShellCompletion {
     Fish,
 }
 
-pub fn generate_completions(shell_completion: &ShellCompletion) {
+pub fn generate_completions(shell_completion: &ShellCompletion) -> Result<()> {
     let mut cmd = WFetchArgs::command();
 
     match shell_completion {
@@ -194,4 +195,6 @@ pub fn generate_completions(shell_completion: &ShellCompletion) {
         ShellCompletion::Zsh => generate(Shell::Zsh, &mut cmd, "focal", &mut std::io::stdout()),
         ShellCompletion::Fish => generate(Shell::Fish, &mut cmd, "focal", &mut std::io::stdout()),
     }
+
+    Ok(())
 }

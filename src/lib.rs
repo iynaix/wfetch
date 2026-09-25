@@ -21,18 +21,16 @@ pub mod logos;
 pub mod wallpaper;
 pub mod xterm;
 
-pub type WFetchResult<T> = Result<T, Box<dyn std::error::Error>>;
-
 pub fn full_path<P>(p: P) -> PathBuf
 where
     P: AsRef<std::path::Path>,
 {
-    let p = p.as_ref().to_str().expect("invalid path");
+    let path = p.as_ref();
 
-    match p.strip_prefix("~/") {
-        Some(p) => dirs::home_dir().expect("invalid home directory").join(p),
-        None => PathBuf::from(p),
-    }
+    path.to_str()
+        .and_then(|p| p.strip_prefix("~"))
+        .and_then(|p| dirs::home_dir().map(|d| d.join(p)))
+        .unwrap_or_else(|| PathBuf::from(path))
 }
 
 pub trait CommandUtf8 {
@@ -44,8 +42,7 @@ impl CommandUtf8 for std::process::Command {
         self.stdout(Stdio::piped()).output().map_or_else(
             |_| Vec::new(),
             |output| {
-                String::from_utf8(output.stdout)
-                    .expect("invalid utf8 from command")
+                String::from_utf8_lossy(&output.stdout)
                     .lines()
                     .map(String::from)
                     .collect()

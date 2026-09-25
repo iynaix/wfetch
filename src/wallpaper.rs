@@ -22,7 +22,9 @@ pub fn info(image: &str, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64)
     let wallfacer_ns = "http://example.com/wallfacer/";
 
     let mut fp = xmpkit::XmpFile::new();
-    fp.open(&image).expect("failed to open image");
+    if fp.open(&image).is_err() {
+        return fallback;
+    };
 
     fp.get_xmp().map_or(fallback, |xmp| {
         xmp.get_struct_field(wallfacer_ns, "crops", "1x1")

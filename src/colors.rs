@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
+use color_eyre::eyre::Result;
 use image::{Pixel, Rgba};
 use palette::{IntoColor, Lab, Srgb, color_difference::EuclideanDistance};
-
-use crate::{WFetchResult, full_path};
+use std::collections::HashMap;
 
 pub type Rgba8 = Rgba<u8>;
 pub const BLACK: Rgba8 = Rgba([0, 0, 0, 255]);
@@ -118,65 +116,37 @@ pub fn most_contrasting_colors(colors: &[Rgba<u8>], n: usize) -> Vec<Rgba<u8>> {
     let mut selected = vec![pair.0, pair.1];
 
     for _ in 2..n {
-        let min = unique_colors
-            .iter()
-            .min_by(|a, b| {
-                let a_dist: f32 = selected
-                    .iter()
-                    .filter(|sel| sel != a && sel != b)
-                    .map(|sel| a.distance(*sel))
-                    .sum();
-                let b_dist: f32 = selected
-                    .iter()
-                    .filter(|sel| sel != a && sel != b)
-                    .map(|sel| b.distance(*sel))
-                    .sum();
+        let Some(min) = unique_colors.iter().min_by(|a, b| {
+            let a_dist: f32 = selected
+                .iter()
+                .filter(|sel| sel != a && sel != b)
+                .map(|sel| a.distance(*sel))
+                .sum();
+            let b_dist: f32 = selected
+                .iter()
+                .filter(|sel| sel != a && sel != b)
+                .map(|sel| b.distance(*sel))
+                .sum();
 
-                a_dist.total_cmp(&b_dist)
-            })
-            .expect("no min");
+            a_dist.total_cmp(&b_dist)
+        }) else {
+            break;
+        };
 
         selected.push(*min);
     }
 
     selected
         .iter()
-        .map(|sel| {
-            **colors
+        .filter_map(|sel| {
+            colors
                 .iter()
                 .find(|(_, l)| *l == sel)
-                .expect("could not find lab color equivalent")
-                .0
+                .map(|color| **color.0)
         })
         .collect()
 }
 
-#[derive(serde::Deserialize)]
-struct NixInfo {
-    colors: HashMap<String, String>,
-}
-
-fn term_colors_from_json() -> WFetchResult<Vec<Rgba8>> {
-    let contents = std::fs::read_to_string(full_path("~/.cache/wallust/nix.json"))?;
-
-    let colors = serde_json::from_str::<NixInfo>(&contents)?.colors;
-
-    (0..16)
-        .map(|i| {
-            let color_str = colors
-                .get(&format!("color{i}"))
-                .ok_or("failed to get color")?;
-            let color = Rgba::from_str(color_str)?;
-            Ok(color)
-        })
-        .collect()
-}
-
-fn term_colors_from_xterm() -> WFetchResult<Vec<Rgba8>> {
-    (0..16).map(crate::xterm::query_term_color).collect()
-}
-
-#[allow(clippy::module_name_repetitions)]
-pub fn get_term_colors() -> WFetchResult<Vec<Rgba8>> {
-    term_colors_from_json().or_else(|_| term_colors_from_xterm())
+pub fn get_term_colors() -> Vec<Rgba8> {
+    (0..16).filter_map(crate::xterm::query_term_color).collect()
 }
