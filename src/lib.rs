@@ -21,18 +21,16 @@ pub mod logos;
 pub mod wallpaper;
 pub mod xterm;
 
-pub type WFetchResult<T> = Result<T, Box<dyn std::error::Error>>;
-
 pub fn full_path<P>(p: P) -> PathBuf
 where
     P: AsRef<std::path::Path>,
 {
-    let p = p.as_ref().to_str().expect("invalid path");
+    let path = p.as_ref();
 
-    match p.strip_prefix("~/") {
-        Some(p) => dirs::home_dir().expect("invalid home directory").join(p),
-        None => PathBuf::from(p),
-    }
+    path.to_str()
+        .and_then(|p| p.strip_prefix("~"))
+        .and_then(|p| dirs::home_dir().map(|d| d.join(p)))
+        .unwrap_or_else(|| PathBuf::from(path))
 }
 
 pub trait CommandUtf8 {
@@ -44,8 +42,7 @@ impl CommandUtf8 for std::process::Command {
         self.stdout(Stdio::piped()).output().map_or_else(
             |_| Vec::new(),
             |output| {
-                String::from_utf8(output.stdout)
-                    .expect("invalid utf8 from command")
+                String::from_utf8_lossy(&output.stdout)
                     .lines()
                     .map(String::from)
                     .collect()
@@ -460,19 +457,20 @@ impl Fastfetch {
 
         // set colors for modules
         if !self.args.no_color_keys {
-            let colors: Vec<String> = match get_term_colors() {
-                Err(_) => ["green", "yellow", "blue", "magenta"]
+            let term_colors = get_term_colors();
+
+            let colors: Vec<String> = if term_colors.is_empty() {
+                ["green", "yellow", "blue", "magenta"]
                     .into_iter()
                     .map(String::from)
-                    .collect(),
-                Ok(term_colors) => {
-                    // remove background color to get contrast
-                    most_contrasting_colors(&term_colors[1..], 3)
-                        .iter()
-                        // .skip(2) // don't use the same colors as the logo
-                        .map(colors::Rgba8Ext::term_fg)
-                        .collect()
-                }
+                    .collect()
+            } else {
+                // remove background color to get contrast
+                most_contrasting_colors(&term_colors[1..], 3)
+                    .iter()
+                    // .skip(2) // don't use the same colors as the logo
+                    .map(colors::Rgba8Ext::term_fg)
+                    .collect()
             };
             let mut color_idx = 0;
             for module in &mut modules {

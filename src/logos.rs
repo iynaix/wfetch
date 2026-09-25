@@ -499,130 +499,127 @@ impl Logo {
             return self.module_for_tmux();
         }
 
-        match get_term_colors() {
-            Err(_) => {
-                #[cfg(feature = "nixos")]
-                {
-                    if self.args.waifu {
-                        return self.waifu1_default();
-                    }
-
-                    if self.args.waifu2 {
-                        return self.waifu2_default();
-                    }
-
-                    if self.args.hollow {
-                        return self.hollow_default();
-                    }
-
-                    if self.args.hollow {
-                        return self.hollow_large_default();
-                    }
-
-                    if self.args.smooth {
-                        return self.smooth_default();
-                    }
-
-                    if self.args.dots {
-                        return self.dots_default();
-                    }
-
-                    if self.args.hashes {
-                        return self.hashes_default();
-                    }
-
-                    if self.nixos {
-                        return self.filled_default();
-                    }
-                }
-            }
-
-            Ok(term_colors) => {
-                // remove background color to get contrast
-                let contrasting_colors = most_contrasting_colors(&term_colors[1..], 2);
-                let color1 = contrasting_colors[0];
-                let color2 = contrasting_colors[1];
-
-                #[cfg(feature = "nixos")]
+        let term_colors = get_term_colors();
+        if term_colors.is_empty() {
+            #[cfg(feature = "nixos")]
+            {
                 if self.args.waifu {
-                    return self.waifu1(&color1, &color2);
+                    return self.waifu1_default();
                 }
-                #[cfg(feature = "nixos")]
+
                 if self.args.waifu2 {
-                    return self.waifu2(&color1, &color2);
+                    return self.waifu2_default();
                 }
 
-                #[cfg(feature = "nixos")]
                 if self.args.hollow {
-                    return json!({
-                        "data": include_str!("../assets/nixos_hollow.txt"),
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                        }),
-                    });
+                    return self.hollow_default();
                 }
 
-                #[cfg(feature = "nixos")]
-                if self.args.hollow_large {
-                    return json!({
-                        "source": "nixos2",
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                        }),
-                    });
+                if self.args.hollow {
+                    return self.hollow_large_default();
                 }
 
-                #[cfg(feature = "nixos")]
-                if self.args.dots {
-                    return json!({
-                        "data": include_str!("../assets/nixos_dots.txt"),
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                        }),
-                    });
-                }
-
-                #[cfg(feature = "nixos")]
-                if self.args.hashes {
-                    return json!({
-                        "source": "nixos_old",
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                        }),
-                    });
-                }
-
-                #[cfg(feature = "nixos")]
                 if self.args.smooth {
-                    return json!({
-                        "data": include_str!("../assets/nixos_smooth.txt"),
-                        // note: it is 1 2 2 1 intentionally
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                            "3": color2.term_bg(),
-                            "4": color1.term_bg(),
-                        }),
-                    });
+                    return self.smooth_default();
+                }
+
+                if self.args.dots {
+                    return self.dots_default();
+                }
+
+                if self.args.hashes {
+                    return self.hashes_default();
                 }
 
                 if self.nixos {
-                    return json!({
-                        "source": "nixos",
-                        "color": json!({
-                            "1": color1.term_fg(),
-                            "2": color2.term_fg(),
-                            "3": color1.term_fg(),
-                            "4": color2.term_fg(),
-                            "5": color1.term_fg(),
-                            "6": color2.term_fg(),
-                        }),
-                    });
+                    return self.filled_default();
                 }
+            }
+        } else {
+            // remove background color to get contrast
+            let contrasting_colors = most_contrasting_colors(&term_colors[1..], 2);
+            let color1 = contrasting_colors[0];
+            let color2 = contrasting_colors[1];
+
+            #[cfg(feature = "nixos")]
+            if self.args.waifu {
+                return self.waifu1(&color1, &color2);
+            }
+            #[cfg(feature = "nixos")]
+            if self.args.waifu2 {
+                return self.waifu2(&color1, &color2);
+            }
+
+            #[cfg(feature = "nixos")]
+            if self.args.hollow {
+                return json!({
+                    "data": include_str!("../assets/nixos_hollow.txt"),
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                    }),
+                });
+            }
+
+            #[cfg(feature = "nixos")]
+            if self.args.hollow_large {
+                return json!({
+                    "source": "nixos2",
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                    }),
+                });
+            }
+
+            #[cfg(feature = "nixos")]
+            if self.args.dots {
+                return json!({
+                    "data": include_str!("../assets/nixos_dots.txt"),
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                    }),
+                });
+            }
+
+            #[cfg(feature = "nixos")]
+            if self.args.hashes {
+                return json!({
+                    "source": "nixos_old",
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                    }),
+                });
+            }
+
+            #[cfg(feature = "nixos")]
+            if self.args.smooth {
+                return json!({
+                    "data": include_str!("../assets/nixos_smooth.txt"),
+                    // note: it is 1 2 2 1 intentionally
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                        "3": color2.term_bg(),
+                        "4": color1.term_bg(),
+                    }),
+                });
+            }
+
+            if self.nixos {
+                return json!({
+                    "source": "nixos",
+                    "color": json!({
+                        "1": color1.term_fg(),
+                        "2": color2.term_fg(),
+                        "3": color1.term_fg(),
+                        "4": color2.term_fg(),
+                        "5": color1.term_fg(),
+                        "6": color2.term_fg(),
+                    }),
+                });
             }
         }
 

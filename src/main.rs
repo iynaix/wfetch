@@ -1,4 +1,5 @@
 use clap::Parser;
+use color_eyre::eyre::Result;
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     terminal::{Clear, ClearType},
@@ -9,7 +10,7 @@ use signal_hook::{
 };
 use std::{
     io::stdout,
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
     thread,
     time::Duration,
 };
@@ -19,7 +20,7 @@ use wfetch::{
     create_output_file,
 };
 
-fn wfetch(args: &WFetchArgs) {
+fn wfetch(args: &WFetchArgs) -> std::io::Result<Output> {
     let config_jsonc = create_output_file("wfetch.jsonc");
 
     Fastfetch::new(args).create_config(&config_jsonc);
@@ -30,10 +31,9 @@ fn wfetch(args: &WFetchArgs) {
         .arg(config_jsonc)
         .stdout(Stdio::inherit())
         .output()
-        .expect("failed to run fastfetch");
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = WFetchArgs::parse();
 
     // print shell completions
@@ -41,32 +41,31 @@ fn main() {
         return generate_completions(&shell);
     }
 
-    crossterm::execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))
-        .expect("Failed to clear screen");
+    crossterm::execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
 
     // initial display of wfetch
-    wfetch(&args);
+    wfetch(&args)?;
 
     // not showing waifu / wallpaper, no need to wait for signal
     if !args.listen {
-        return;
+        return Ok(());
     }
 
-    crossterm::execute!(stdout(), Hide).expect("Failed to hide cursor");
+    crossterm::execute!(stdout(), Hide)?;
 
     // handle SIGUSR2 to update colors
     // https://rust-cli.github.io/book/in-depth/signals.html#handling-other-types-of-signals
-    let mut signals = Signals::new([SIGINT, SIGUSR2]).expect("failed to register signals");
+    let mut signals = Signals::new([SIGINT, SIGUSR2])?;
 
     thread::spawn(move || {
         for sig in signals.forever() {
             match sig {
                 SIGINT => {
-                    crossterm::execute!(stdout(), Show).expect("Failed to restore cursor");
+                    crossterm::execute!(stdout(), Show).ok();
                     std::process::exit(0);
                 }
                 SIGUSR2 => {
-                    wfetch(&args);
+                    wfetch(&args).ok();
                 }
                 _ => unreachable!(),
             }
