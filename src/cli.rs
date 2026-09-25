@@ -1,6 +1,5 @@
 use clap::{ArgGroup, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::{Shell, generate};
-use color_eyre::eyre::Result;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Parser, Debug, Clone)]
@@ -130,7 +129,7 @@ pub struct WFetchArgs {
         default_value = "10",
         help = "Duration of challenge in years"
     )]
-    pub challenge_years: u32,
+    pub challenge_years: i32,
 
     #[arg(
         long,
@@ -139,7 +138,7 @@ pub struct WFetchArgs {
         default_value = "0",
         help = "Duration of challenge in months"
     )]
-    pub challenge_months: u32,
+    pub challenge_months: i32,
 
     #[arg(long, action, help = "Type of the challenge, e.g. emacs")]
     pub challenge_type: Option<String>,
@@ -187,7 +186,7 @@ pub enum ShellCompletion {
     Fish,
 }
 
-pub fn generate_completions(shell_completion: &ShellCompletion) -> Result<()> {
+pub fn generate_completions(shell_completion: &ShellCompletion) {
     let mut cmd = WFetchArgs::command();
 
     match shell_completion {
@@ -195,6 +194,4 @@ pub fn generate_completions(shell_completion: &ShellCompletion) -> Result<()> {
         ShellCompletion::Zsh => generate(Shell::Zsh, &mut cmd, "focal", &mut std::io::stdout()),
         ShellCompletion::Fish => generate(Shell::Fish, &mut cmd, "focal", &mut std::io::stdout()),
     }
-
-    Ok(())
 }

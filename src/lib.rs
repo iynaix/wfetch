@@ -2,7 +2,8 @@ use crate::{
     cli::WFetchArgs,
     colors::{get_term_colors, most_contrasting_colors},
 };
-use chrono::{DateTime, Datelike, NaiveDate, Timelike};
+use color_eyre::eyre::{OptionExt, Result};
+use jiff::{Timestamp, ToSpan, tz::TimeZone};
 use logos::Logo;
 use nix::unistd::getpgrp;
 use serde_json::{Value, json};
@@ -28,7 +29,7 @@ where
     let path = p.as_ref();
 
     path.to_str()
-        .and_then(|p| p.strip_prefix("~"))
+        .and_then(|p| p.strip_prefix("~/"))
         .and_then(|p| dirs::home_dir().map(|d| d.join(p)))
         .unwrap_or_else(|| PathBuf::from(path))
 }
@@ -51,25 +52,16 @@ impl CommandUtf8 for std::process::Command {
     }
 }
 
-pub fn create_output_file(filename: &str) -> PathBuf {
+pub fn create_output_file(filename: &str) -> Result<PathBuf> {
     let output_dir = full_path("/tmp/wfetch");
-    std::fs::create_dir_all(&output_dir).expect("failed to create output dir");
+    std::fs::create_dir_all(&output_dir)?;
 
-    output_dir.join(filename)
+    Ok(output_dir.join(filename))
 }
 
 fn term_color(color: i32, text: &str, bold: bool) -> String {
     let bold_format = if bold { "1;" } else { "" };
     format!("\u{1b}[{bold_format}{}m{text}\u{1b}[0m", 30 + color)
-}
-
-fn last_day_of_month(year: i32, month: u32) -> u32 {
-    let month = if month == 12 { 1 } else { month };
-    let year = if month == 12 { year + 1 } else { year };
-
-    let first_day_of_next_month =
-        NaiveDate::from_ymd_opt(year, month + 1, 1).expect("cannot create ymd");
-    (first_day_of_next_month - chrono::Duration::try_days(1).expect("cannot create duration")).day()
 }
 
 #[derive(Debug)]
@@ -79,7 +71,7 @@ pub struct Fastfetch {
 }
 
 impl Fastfetch {
-    pub fn new(args: &WFetchArgs) -> Self {
+    pub fn try_new(args: &WFetchArgs) -> Result<Self> {
         /*
         run fastfetch in the same process group as the terminal using the
         setsid syscall in order for fastfetch to properly detect the
@@ -95,18 +87,16 @@ impl Fastfetch {
             .process_group(getpgrp().into())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .spawn()
-            .expect("failed to spawn fastfetch");
+            .spawn()?;
 
         // pass preprocess.json as raw bytes from stdin
         child
             .stdin
             .take()
-            .expect("no stdin handle")
-            .write_all(include_bytes!("../assets/preprocess.json"))
-            .expect("failed to write config to stdin");
+            .ok_or_eyre("no stdin handle")?
+            .write_all(include_bytes!("../assets/preprocess.json"))?;
 
-        let output = child.wait_with_output().expect("fastfetch failed");
+        let output = child.wait_with_output()?;
 
         let preprocess: HashMap<_, _> = String::from_utf8_lossy(&output.stdout)
             .lines()
@@ -116,10 +106,10 @@ impl Fastfetch {
             })
             .collect();
 
-        Self {
+        Ok(Self {
             preprocess,
             args: args.clone(),
-        }
+        })
     }
 
     // gets a value from preprocessed, given its key
@@ -195,7 +185,7 @@ impl Fastfetch {
 
         json!({
             "type": "os",
-            "key": format!(" OS"),
+            "key": " OS".to_string(),
             "format": "{3}"
         })
     }
@@ -232,7 +222,7 @@ impl Fastfetch {
             }
         }
 
-        json!({ "type": "wm", "key": format!("󰕮 WM"), "format": "{2}" })
+        json!({ "type": "wm", "key": "󰕮 WM".to_string(), "format": "{2}" })
     }
 
     #[allow(clippy::unused_self)]
@@ -277,6 +267,7 @@ impl Fastfetch {
             env::var("TMUX").is_ok(),
         )
         .module()
+        .unwrap_or_else(|_| json!({ "source": null }))
     }
 
     fn terminal_module(&self) -> serde_json::Value {
@@ -309,7 +300,7 @@ impl Fastfetch {
             .iter()
             .filter_map(|(k, v)| k.starts_with("GPU").then_some(v))
             .filter_map(|v| {
-                let (gpu, gpu_type) = v.split_once("____").expect("invalid gpu format");
+                let (gpu, gpu_type) = v.split_once("____")?;
                 if gpu_type == "Discrete" {
                     discrete.push(gpu_json(gpu));
                     return None;
@@ -336,42 +327,24 @@ impl Fastfetch {
             .collect()
     }
 
-    #[allow(clippy::cast_precision_loss, clippy::cast_possible_wrap)]
     fn challenge_text(&self) -> String {
-        let start = DateTime::parse_from_str(&self.args.challenge_timestamp.to_string(), "%s")
-            .expect("could not parse start timestamp");
+        let start = Timestamp::from_second(self.args.challenge_timestamp.into()).map_or_else(
+            |_| {
+                eprintln!("Invalid challenge timestamp");
+                std::process::exit(1);
+            },
+            |ts| ts.to_zoned(TimeZone::UTC),
+        );
 
-        let mths = self.args.challenge_months % 12;
-        let yrs = self.args.challenge_years + self.args.challenge_months / 12;
+        let total_mths = self.args.challenge_months + self.args.challenge_years * 12;
+        let end = start.saturating_add(total_mths.months());
 
-        let final_mth = if start.month() + mths > 12 {
-            start.month() + mths - 12
-        } else {
-            start.month() + mths
-        };
-        let final_yr = if start.month() + mths > 12 {
-            start.year() + yrs as i32 + 1
-        } else {
-            start.year() + yrs as i32
-        };
-        let final_day = std::cmp::min(start.day(), last_day_of_month(final_yr, final_mth));
+        let now = Timestamp::now().to_zoned(TimeZone::UTC);
 
-        let end = NaiveDate::from_ymd_opt(final_yr, final_mth, final_day)
-            .expect("invalid end date")
-            .and_time(
-                chrono::NaiveTime::from_hms_opt(start.hour(), start.minute(), start.second())
-                    .expect("invalid end time"),
-            );
+        let elapsed_days = now.duration_since(&start).as_secs() / 60 / 60 / 24;
+        let total_days = end.duration_since(&start).as_secs() / 60 / 60 / 24;
 
-        let now = chrono::offset::Local::now();
-
-        let elapsed = now.timestamp() - start.timestamp();
-        let total = end.and_utc().timestamp() - start.timestamp();
-
-        let percent = elapsed as f32 / total as f32 * 100.0;
-
-        let elapsed_days = elapsed / 60 / 60 / 24;
-        let total_days = total / 60 / 60 / 24;
+        let percent = elapsed_days as f64 / total_days as f64 * 100.0;
 
         format!("{elapsed_days} Days / {total_days} Days ({percent:.2}%)")
     }
@@ -480,7 +453,6 @@ impl Fastfetch {
                 }
             }
         }
-        // std::process::exit(0);
 
         // optional challenge block
         if self.args.challenge {

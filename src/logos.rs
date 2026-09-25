@@ -4,10 +4,11 @@ use std::{
     process::{Command, Stdio},
 };
 
+use color_eyre::eyre::{OptionExt, Result};
 use fast_image_resize::images::Image;
 use fast_image_resize::{IntoImageView, PixelType, ResizeOptions, Resizer};
 use image::{ImageBuffer, ImageEncoder, ImageReader, Rgba, codecs::png::PngEncoder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue, json};
 
 use crate::{
@@ -85,16 +86,14 @@ fn resize_with_scale(scale: Option<f64>, width: u32, height: u32, term: &str) ->
 pub fn image_from_arg(arg: &str) -> Option<String> {
     if arg == "-" {
         let mut buf = Vec::new();
-        std::io::stdin()
-            .read_to_end(&mut buf)
-            .expect("unable to read stdin");
+        std::io::stdin().read_to_end(&mut buf).ok()?;
 
         // valid image, write stdin to a file
         if let Ok(format) = image::guess_format(&buf) {
             // need to write the extension or Image has problems guessing the format later
             let ext = format.extensions_str()[0];
-            let output = create_output_file(&format!("wfetch_stdin.{ext}"));
-            std::fs::write(&output, &buf).expect("could not write stdin to file");
+            let output = create_output_file(&format!("wfetch_stdin.{ext}")).ok()?;
+            std::fs::write(&output, &buf).ok()?;
             return Some(output.to_string_lossy().to_string());
         }
 
@@ -122,8 +121,12 @@ fn image_height(target_height: u32, lines: u32) -> u32 {
 }
 
 /// creates the wallpaper image that fastfetch will display
-pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String>) -> PathBuf {
-    let output = create_output_file("wfetch.png");
+pub fn resize_wallpaper(
+    args: &WFetchArgs,
+    term: &str,
+    image_arg: &Option<String>,
+) -> Result<PathBuf> {
+    let output = create_output_file("wfetch.png")?;
 
     let wall = image_arg
         .as_ref()
@@ -133,14 +136,10 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
             std::process::exit(1);
         });
 
-    ImageReader::open(&wall)
-        .expect("could not open image")
-        .decode()
-        .expect("could not decode image");
+    ImageReader::open(&wall)?.decode()?;
 
     let mut fallback_geometry = {
-        let (width, height) =
-            image::image_dimensions(&wall).expect("could not get image dimensions");
+        let (width, height) = image::image_dimensions(&wall)?;
         let (width, height) = (f64::from(width), f64::from(height));
 
         // get basic square crop in the center
@@ -162,10 +161,7 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
     let (w, h, x, y) = fallback_geometry;
     fallback_geometry = (w.min(h), w.min(h), x, y);
 
-    let img = ImageReader::open(&wall)
-        .expect("could not open image")
-        .decode()
-        .expect("could not decode image");
+    let img = ImageReader::open(&wall)?.decode()?;
 
     let dst_size = args.image_size.unwrap_or_else(|| {
         if args.challenge {
@@ -181,25 +177,29 @@ pub fn resize_wallpaper(args: &WFetchArgs, term: &str, image_arg: &Option<String
     let mut dest = Image::new(
         dst_size,
         dst_size,
-        img.pixel_type().expect("could not get pixel type"),
+        img.pixel_type().ok_or_eyre("Unknown pixel type")?,
     );
     let (w, h, x, y) = fallback_geometry;
-    Resizer::new()
-        .resize(&img, &mut dest, &ResizeOptions::new().crop(x, y, w, h))
-        .expect("failed to resize image");
+    Resizer::new().resize(&img, &mut dest, &ResizeOptions::new().crop(x, y, w, h))?;
 
-    let mut result_buf =
-        std::io::BufWriter::new(std::fs::File::create(&output).expect("could not create file"));
+    let mut result_buf = std::io::BufWriter::new(std::fs::File::create(&output)?);
 
     #[allow(clippy::cast_sign_loss)]
-    PngEncoder::new(&mut result_buf)
-        .write_image(dest.buffer(), dst_size, dst_size, img.color().into())
-        .expect("failed to write wallpaper crop");
+    PngEncoder::new(&mut result_buf).write_image(
+        dest.buffer(),
+        dst_size,
+        dst_size,
+        img.color().into(),
+    )?;
 
-    output
+    Ok(output)
 }
 
-fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output: &PathBuf) {
+fn save_png(
+    src: ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+    size: (u32, u32),
+    output: &PathBuf,
+) -> Result<()> {
     let (mut dst_w, mut dst_h) = size;
 
     // resize src to fit within size
@@ -213,24 +213,23 @@ fn save_png(src: ImageBuffer<image::Rgba<u8>, Vec<u8>>, size: (u32, u32), output
         dst_w = (f64::from(src_w) * f64::from(dst_h) / f64::from(src_h)) as u32;
     }
 
-    let src_view = Image::from_vec_u8(src.width(), src.height(), src.into_raw(), PixelType::U8x4)
-        .expect("could not create image view");
+    let src_view = Image::from_vec_u8(src.width(), src.height(), src.into_raw(), PixelType::U8x4)?;
 
     #[allow(clippy::cast_sign_loss)]
     let mut dest = Image::new(dst_w, dst_h, PixelType::U8x4);
-    Resizer::new()
-        .resize(&src_view, &mut dest, None)
-        .expect("failed to resize image");
+    Resizer::new().resize(&src_view, &mut dest, None)?;
 
-    let mut result_buf = std::io::BufWriter::new(
-        std::fs::File::create(output)
-            .unwrap_or_else(|_| panic!("could not create {}", output.display())),
-    );
+    let mut result_buf = std::io::BufWriter::new(std::fs::File::create(output)?);
 
     #[allow(clippy::cast_sign_loss)]
-    PngEncoder::new(&mut result_buf)
-        .write_image(dest.buffer(), dst_w, dst_h, image::ColorType::Rgba8.into())
-        .unwrap_or_else(|_| panic!("failed to write png for {}", output.display()));
+    PngEncoder::new(&mut result_buf).write_image(
+        dest.buffer(),
+        dst_w,
+        dst_h,
+        image::ColorType::Rgba8.into(),
+    )?;
+
+    Ok(())
 }
 
 pub struct Logo {
@@ -250,7 +249,10 @@ impl Logo {
         }
     }
 
-    fn with_backend(&self, source: &str) -> JsonValue {
+    fn with_backend<S>(&self, source: S) -> JsonValue
+    where
+        S: AsRef<str> + Serialize,
+    {
         let logo_backend = if self.term == "konsole" {
             "iterm"
         } else if self.term == "foot" {
@@ -269,15 +271,13 @@ impl Logo {
         })
     }
 
-    pub fn waifu1(&self, color1: &Rgba8, color2: &Rgba8) -> JsonValue {
-        let output = create_output_file("wfetch.png");
+    pub fn waifu1(&self, color1: &Rgba8, color2: &Rgba8) -> Result<JsonValue> {
+        let output = create_output_file("wfetch.png")?;
 
         let replace1 = Rgba8::from(NIX_COLOR1);
         let replace2 = Rgba8::from(NIX_COLOR2);
 
-        let mut src = image::load_from_memory(include_bytes!("../assets/nixos1.png"))
-            .expect("could not load nixos1.png")
-            .into_rgba8();
+        let mut src = image::load_from_memory(include_bytes!("../assets/nixos1.png"))?.into_rgba8();
 
         let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
 
@@ -298,29 +298,21 @@ impl Logo {
             src,
             resize_with_scale(self.args.scale, side, side, &self.term),
             &output,
-        );
+        )?;
 
-        self.with_backend(
-            output
-                .to_str()
-                .expect("could not convert output path to str"),
-        )
+        Ok(self.with_backend(output.to_string_lossy()))
     }
 
-    pub fn waifu2(&self, color1: &Rgba8, color2: &Rgba8) -> JsonValue {
-        let output = create_output_file("wfetch.png");
+    pub fn waifu2(&self, color1: &Rgba8, color2: &Rgba8) -> Result<JsonValue> {
+        let output = create_output_file("wfetch.png")?;
 
-        let mut src = image::load_from_memory(include_bytes!("../assets/nixos2.png"))
-            .expect("could not load nixos2.png")
-            .into_rgba8();
+        let mut src = image::load_from_memory(include_bytes!("../assets/nixos2.png"))?.into_rgba8();
 
-        let mask1 = image::load_from_memory(include_bytes!("../assets/nixos2-mask1.jpg"))
-            .expect("could not load nixos2-mask1.png")
-            .into_rgba8();
+        let mask1 =
+            image::load_from_memory(include_bytes!("../assets/nixos2-mask1.jpg"))?.into_rgba8();
 
-        let mask2 = image::load_from_memory(include_bytes!("../assets/nixos2-mask2.jpg"))
-            .expect("could not load nixos2-mask2.png")
-            .into_rgba8();
+        let mask2 =
+            image::load_from_memory(include_bytes!("../assets/nixos2-mask2.jpg"))?.into_rgba8();
 
         let fuzz = 0.1 * (255.0_f64 * 255.0_f64 * 3.0_f64).sqrt();
         let black = Rgba([0, 0, 0, 255]);
@@ -347,19 +339,15 @@ impl Logo {
             src,
             resize_with_scale(self.args.scale, side, side, &self.term),
             &output,
-        );
+        )?;
 
-        self.with_backend(
-            output
-                .to_str()
-                .expect("could not convert output path to str"),
-        )
+        Ok(self.with_backend(output.to_string_lossy()))
     }
 
     /// creates the wallpaper ascii that fastfetch will display
-    pub fn show_wallpaper_ascii(&self, image_arg: &Option<String>) -> PathBuf {
-        let img = resize_wallpaper(&self.args, &self.term, image_arg);
-        let output_dir = img.parent().expect("could not get output dir");
+    pub fn show_wallpaper_ascii(&self, image_arg: &Option<String>) -> Result<PathBuf> {
+        let img = resize_wallpaper(&self.args, &self.term, image_arg)?;
+        let output_dir = img.parent().ok_or_eyre("could not get output dir")?;
 
         // NOTE: uses patched version of ascii-image-converter to be able to output colored ascii text to file
         Command::new("ascii-image-converter")
@@ -377,17 +365,16 @@ impl Logo {
             .arg(&img)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status()
-            .expect("could not run ascii-image-converter");
+            .status()?;
 
-        output_dir.join("wfetch-ascii-art.txt")
+        Ok(output_dir.join("wfetch-ascii-art.txt"))
     }
 
-    pub fn waifu1_default(&self) -> JsonValue {
+    pub fn waifu1_default(&self) -> Result<JsonValue> {
         self.waifu1(&Rgba8::from(NIX_COLOR1), &Rgba8::from(NIX_COLOR2))
     }
 
-    pub fn waifu2_default(&self) -> JsonValue {
+    pub fn waifu2_default(&self) -> Result<JsonValue> {
         self.waifu2(&Rgba8::from(NIX_COLOR1), &Rgba8::from(NIX_COLOR2))
     }
 
@@ -443,7 +430,7 @@ impl Logo {
         })
     }
 
-    pub fn module_for_tmux(&self) -> JsonValue {
+    pub fn module_for_tmux(&self) -> Result<JsonValue> {
         #[cfg(feature = "nixos")]
         if self.args.waifu {
             return self.waifu1_default();
@@ -455,43 +442,43 @@ impl Logo {
 
         #[cfg(feature = "nixos")]
         if self.args.hollow {
-            return self.hollow_default();
+            return Ok(self.hollow_default());
         }
 
         #[cfg(feature = "nixos")]
         if self.args.smooth {
-            return self.smooth_default();
+            return Ok(self.smooth_default());
         }
 
         #[cfg(feature = "nixos")]
         if self.args.dots {
-            return self.dots_default();
+            return Ok(self.dots_default());
         }
 
         if self.nixos {
-            return self.filled_default();
+            return Ok(self.filled_default());
         }
 
         // use fastfetch default
-        json!({ "source": null })
+        Ok(json!({ "source": null }))
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn module(&self) -> JsonValue {
+    pub fn module(&self) -> Result<JsonValue> {
         if self.args.wallpaper_ascii.is_some() {
-            let ascii_file = self.show_wallpaper_ascii(&self.args.wallpaper_ascii);
-            return json!({
-                "type": "auto",
-                "source": ascii_file.to_str().expect("could not convert ascii file path to str"),
-            });
+            return self
+                .show_wallpaper_ascii(&self.args.wallpaper_ascii)
+                .map(|ascii_file| {
+                    json!({
+                        "type": "auto",
+                        "source": ascii_file,
+                    })
+                });
         }
 
         if self.args.wallpaper.is_some() {
-            return self.with_backend(
-                resize_wallpaper(&self.args, &self.term, &self.args.wallpaper)
-                    .to_str()
-                    .expect("could not convert output path to str"),
-            );
+            return resize_wallpaper(&self.args, &self.term, &self.args.wallpaper)
+                .map(|wall| self.with_backend(wall.to_string_lossy()));
         }
 
         // handle tmux separately as the raw xterm sequences breaks rendering and text input
@@ -512,27 +499,27 @@ impl Logo {
                 }
 
                 if self.args.hollow {
-                    return self.hollow_default();
+                    return Ok(self.hollow_default());
                 }
 
                 if self.args.hollow {
-                    return self.hollow_large_default();
+                    return Ok(self.hollow_large_default());
                 }
 
                 if self.args.smooth {
-                    return self.smooth_default();
+                    return Ok(self.smooth_default());
                 }
 
                 if self.args.dots {
-                    return self.dots_default();
+                    return Ok(self.dots_default());
                 }
 
                 if self.args.hashes {
-                    return self.hashes_default();
+                    return Ok(self.hashes_default());
                 }
 
                 if self.nixos {
-                    return self.filled_default();
+                    return Ok(self.filled_default());
                 }
             }
         } else {
@@ -552,51 +539,51 @@ impl Logo {
 
             #[cfg(feature = "nixos")]
             if self.args.hollow {
-                return json!({
+                return Ok(json!({
                     "data": include_str!("../assets/nixos_hollow.txt"),
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
                     }),
-                });
+                }));
             }
 
             #[cfg(feature = "nixos")]
             if self.args.hollow_large {
-                return json!({
+                return Ok(json!({
                     "source": "nixos2",
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
                     }),
-                });
+                }));
             }
 
             #[cfg(feature = "nixos")]
             if self.args.dots {
-                return json!({
+                return Ok(json!({
                     "data": include_str!("../assets/nixos_dots.txt"),
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
                     }),
-                });
+                }));
             }
 
             #[cfg(feature = "nixos")]
             if self.args.hashes {
-                return json!({
+                return Ok(json!({
                     "source": "nixos_old",
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
                     }),
-                });
+                }));
             }
 
             #[cfg(feature = "nixos")]
             if self.args.smooth {
-                return json!({
+                return Ok(json!({
                     "data": include_str!("../assets/nixos_smooth.txt"),
                     // note: it is 1 2 2 1 intentionally
                     "color": json!({
@@ -605,11 +592,11 @@ impl Logo {
                         "3": color2.term_bg(),
                         "4": color1.term_bg(),
                     }),
-                });
+                }));
             }
 
             if self.nixos {
-                return json!({
+                return Ok(json!({
                     "source": "nixos",
                     "color": json!({
                         "1": color1.term_fg(),
@@ -619,11 +606,11 @@ impl Logo {
                         "5": color1.term_fg(),
                         "6": color2.term_fg(),
                     }),
-                });
+                }));
             }
         }
 
         // use fastfetch default
-        json!({ "source": null })
+        Ok(json!({ "source": null }))
     }
 }

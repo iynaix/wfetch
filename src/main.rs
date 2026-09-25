@@ -20,17 +20,19 @@ use wfetch::{
     create_output_file,
 };
 
-fn wfetch(args: &WFetchArgs) -> std::io::Result<Output> {
-    let config_jsonc = create_output_file("wfetch.jsonc");
+fn wfetch(args: &WFetchArgs) -> Result<Output> {
+    let config_jsonc = create_output_file("wfetch.jsonc")?;
 
-    Fastfetch::new(args).create_config(&config_jsonc);
+    Fastfetch::try_new(args)?.create_config(&config_jsonc);
 
-    Command::new("fastfetch")
+    let output = Command::new("fastfetch")
         .arg("--hide-cursor")
         .arg("--config")
         .arg(config_jsonc)
         .stdout(Stdio::inherit())
-        .output()
+        .output()?;
+
+    Ok(output)
 }
 
 fn main() -> Result<()> {
@@ -38,7 +40,8 @@ fn main() -> Result<()> {
 
     // print shell completions
     if let Some(shell) = args.generate {
-        return generate_completions(&shell);
+        generate_completions(&shell);
+        return Ok(());
     }
 
     crossterm::execute!(stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
