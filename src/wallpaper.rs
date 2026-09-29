@@ -27,7 +27,7 @@ pub fn info(image: &str, fallback: (f64, f64, f64, f64)) -> (f64, f64, f64, f64)
     }
 
     fp.get_xmp().map_or(fallback, |xmp| {
-        xmp.get_struct_field(wallfacer_ns, "crops", "1x1")
+        xmp.get_property(wallfacer_ns, "crop_1x1")
             .and_then(|crop| crop.as_str().and_then(geom_from_str))
             .unwrap_or(fallback)
     })
