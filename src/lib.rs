@@ -265,6 +265,7 @@ impl Fastfetch {
             self.preprocess("OS").contains("NixOS"),
             self.preprocess("Terminal").as_str(),
             env::var("TMUX").is_ok(),
+            self.preprocess("Fastfetch").as_str(),
         )
         .module()
         .unwrap_or_else(|_| json!({ "source": null }))

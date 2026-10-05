@@ -30,6 +30,7 @@ fn wfetch(args: &WFetchArgs) -> Result<Output> {
         .arg("--config")
         .arg(config_jsonc)
         .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .output()?;
 
     Ok(output)

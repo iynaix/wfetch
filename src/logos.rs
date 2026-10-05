@@ -237,15 +237,23 @@ pub struct Logo {
     nixos: bool,
     term: String,
     tmux: bool,
+    fastfetch_version: String,
 }
 
 impl Logo {
-    pub fn new(args: &WFetchArgs, nixos: bool, term: &str, tmux: bool) -> Self {
+    pub fn new(
+        args: &WFetchArgs,
+        nixos: bool,
+        term: &str,
+        tmux: bool,
+        fastfetch_version: &str,
+    ) -> Self {
         Self {
             args: args.clone(),
             nixos,
             term: term.to_string(),
             tmux,
+            fastfetch_version: fastfetch_version.to_string(),
         }
     }
 
@@ -263,10 +271,16 @@ impl Logo {
             "kitty"
         };
 
+        let cache_key = if self.fastfetch_version.as_str() < "2.69.0" {
+            "recache"
+        } else {
+            "cache"
+        };
+
         json!({
             "type": logo_backend,
             "source": source,
-            "recache": true,
+            cache_key: true,
             "preserveAspectRatio": true,
         })
     }
