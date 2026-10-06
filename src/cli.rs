@@ -190,8 +190,8 @@ pub fn generate_completions(shell_completion: &ShellCompletion) {
     let mut cmd = WFetchArgs::command();
 
     match shell_completion {
-        ShellCompletion::Bash => generate(Shell::Bash, &mut cmd, "focal", &mut std::io::stdout()),
-        ShellCompletion::Zsh => generate(Shell::Zsh, &mut cmd, "focal", &mut std::io::stdout()),
-        ShellCompletion::Fish => generate(Shell::Fish, &mut cmd, "focal", &mut std::io::stdout()),
+        ShellCompletion::Bash => generate(Shell::Bash, &mut cmd, "wfetch", &mut std::io::stdout()),
+        ShellCompletion::Zsh => generate(Shell::Zsh, &mut cmd, "wfetch", &mut std::io::stdout()),
+        ShellCompletion::Fish => generate(Shell::Fish, &mut cmd, "wfetch", &mut std::io::stdout()),
     }
 }
