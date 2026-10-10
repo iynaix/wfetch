@@ -17,7 +17,7 @@
     },
     {
       "type": "terminal",
-      "format": "{3}"
+      "format": "{pretty-name}"
     },
     {
       "type": "shell",
