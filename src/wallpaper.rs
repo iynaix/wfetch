@@ -46,7 +46,7 @@ fn detect_swww() -> Option<String> {
 
 /// detect wallpaper using swaybg
 fn detect_swaybg() -> Option<String> {
-    let sys = sysinfo::System::new_all();
+    let sys = sysinfo::System::new_all().ok()?;
 
     let mut processes = sys.processes_by_exact_name("swaybg".as_ref());
     processes
