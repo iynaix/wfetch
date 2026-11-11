@@ -394,7 +394,8 @@ impl Logo {
 
     pub fn hollow_default(&self) -> JsonValue {
         json!({
-            "data": include_str!("../assets/nixos_hollow.txt"),
+            "type": "data",
+            "source": include_str!("../assets/nixos_hollow.txt"),
             "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
@@ -408,7 +409,8 @@ impl Logo {
 
     pub fn smooth_default(&self) -> JsonValue {
         json!({
-            "data": include_str!("../assets/nixos_smooth.txt"),
+            "type": "data",
+            "source": include_str!("../assets/nixos_smooth.txt"),
             "color": json!({
                 "1": "38;5;4", // blue
                 "2": "38;5;6", // cyan
@@ -420,7 +422,8 @@ impl Logo {
 
     pub fn dots_default(&self) -> JsonValue {
         json!({
-            "data": include_str!("../assets/nixos_dots.txt"),
+            "type": "data",
+            "source": include_str!("../assets/nixos_dots.txt"),
             "color": json!({ "1": "blue", "2": "cyan" }),
         })
     }
@@ -554,7 +557,8 @@ impl Logo {
             #[cfg(feature = "nixos")]
             if self.args.hollow {
                 return Ok(json!({
-                    "data": include_str!("../assets/nixos_hollow.txt"),
+                    "type": "data",
+                    "source": include_str!("../assets/nixos_hollow.txt"),
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
@@ -576,7 +580,8 @@ impl Logo {
             #[cfg(feature = "nixos")]
             if self.args.dots {
                 return Ok(json!({
-                    "data": include_str!("../assets/nixos_dots.txt"),
+                    "type": "data",
+                    "source": include_str!("../assets/nixos_dots.txt"),
                     "color": json!({
                         "1": color1.term_fg(),
                         "2": color2.term_fg(),
@@ -598,7 +603,8 @@ impl Logo {
             #[cfg(feature = "nixos")]
             if self.args.smooth {
                 return Ok(json!({
-                    "data": include_str!("../assets/nixos_smooth.txt"),
+                    "type": "data",
+                    "source": include_str!("../assets/nixos_smooth.txt"),
                     // note: it is 1 2 2 1 intentionally
                     "color": json!({
                         "1": color1.term_fg(),
